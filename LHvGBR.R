@@ -230,8 +230,24 @@ sig.res
 # SK 05/08/2014
 ## INCIDENCE WEIGHTED RANDOM DRAWS
 
+# Load data from AB with abundance of GBR species
+GBRab <- read.csv("LIT_GBRNorth&South_ahb_abundance.csv")
+head(GBRab)
 
-
+# should incidence be calculated on number of transects (nested within sites),
+# sites (n = 39, nested in reefs, most reefs have 2 sites but some only 1) 
+# or number of reefs (n = 22, lower resolution)? Try all
+num.transects <- as.data.frame(table(GBRab$species))
+num.sites1 <- as.data.frame(table(GBRab$species,GBRab$site))
+num.sites2 <- subset(num.sites1,num.sites1$Freq>0)
+num.sites <- as.data.frame(table(num.sites2$Var1))
+num.reefs1 <- as.data.frame(table(GBRab$species,GBRab$reef))
+num.reefs2 <- subset(num.reefs1,num.reefs1$Freq>0)
+num.reefs <- as.data.frame(table(num.reefs2$Var1))
+inc <- cbind(num.transects,num.sites[,2],num.reefs[,2])
+colnames(inc) <- c("species","transects","sites","reefs") 
+# save data frame with species incidence at transect, site and reef level
+save(inc,file="SpeciesIncidenceGBR.RData")
 
 ##############################################
 ##############################################
