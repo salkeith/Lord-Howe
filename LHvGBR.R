@@ -175,43 +175,15 @@ ott.mean <- colMeans(ott[,2:ncol(lizt)],na.rm=T)
 lhit.mean <- colMeans(lhit[,2:ncol(lizt)],na.rm=T)
 
 
+############################################
+############################################
+# GENERATE NULL MODEL AND OUTPUT RESULTS
+# AS PDF FILE OF HISTOGRAMS
+
+source("RandomDrawFunction.txt")
+source("PlotTraitDistributionFunction.txt")
+
 ndraw <- 10000  # set number of random draws
-
-# Function for generating trait space (distributions) in random assemblages
-# i.e., mean of each trait for each random draw
-trait.space <- function(island.name,ndraw=1000){
-   # prepare data frame to hold result
-   trait.space.res <- as.data.frame(matrix(nrow=ndraw,ncol=ncol(traits)-1))
-   colnames(trait.space.res) <- colnames(traits)[2:ncol(traits)]
-   # loop through random draws
-   for(i in 1:ndraw){
-      rd <- as.data.frame(sample(aus.sp,island.name,replace=F))  
-      colnames(rd) <- "species"
-      # merge randomly drawn species with traits
-      rdt <- merge(rd,traits,by="species")
-      trait.space.res[i,] <- colMeans(rdt[,2:ncol(rdt)],na.rm=T)
-   }
-   return(trait.space.res)
-}
-
-# Function to plot histograms of trait distributions from random draws
-# with vertical line for observed mean trait value
-plot.trait <- function(island.name,trait.mean,trait.space.res){
-   pdf(paste(island.name,"trait histograms random draw.pdf"))
-   par(mfcol=c(3,2))
-   # plot variables with -1, 0, 1 values
-   for(z in c(6,7,9:11)){
-      hist(trait.space.res[,z],main=colnames(trait.space.res)[z],xlim=c(-1,1)) # random values
-      abline(v=trait.mean[z],col=2)  # observed value
-   }
-   # plot variables with continuous values
-   par(mfcol=c(3,3))
-   for(z in c(1:5,8,12,13)){
-      hist(trait.space.res[,z],main=colnames(trait.space.res)[z]) # random values
-      abline(v=trait.mean[z],col=2) # observed value
-   }
-   dev.off()   
-}
 
 # Lizard Island random draws
 liz.ts <- trait.space(liz,ndraw)
@@ -224,50 +196,21 @@ lhi.ts <- trait.space(lhi,ndraw)
 plot.trait("Lord Howe",lhit.mean,lhi.ts)
 
 
+###########################################
+###########################################
+## CALCULATE 95% CONFIDENCE INTERVALS
 
+source("TraitConfIntFunction.txt")
+source("SignificanceCI.txt")
 
+CIlow <- 0.025
+CIupp <- 0.975
+lizCI <- trait.CI(liz.ts,lizt.mean,CIlow,CIupp)
+otCI <- trait.CI(ot.ts,ott.mean,CIlow,CIupp)
+lhiCI <- trait.CI(lhi.ts,lhit.mean,CIlow,CIupp)
 
-##### CALCULATE 95% CONFIDENCE INTERVALS
-cil.liz <- apply(trait.space.liz,2,function(x) mean(x)-(1.96*(sd(x)/sqrt(nrow(trait.space.liz)))))
-ciu.liz <- apply(trait.space.liz,2,function(x) mean(x)+(1.96*(sd(x)/sqrt(nrow(trait.space.liz)))))
-liz.ci <- cbind(lizt.mean,cil.liz,ciu.liz)
-sig.liz <- as.data.frame(ifelse(liz.ci[,1]>cil.liz & liz.ci[,1]<ciu.liz,0,1))
-colnames(sig.liz) <- "lizard"
-
-cil.ot <- apply(trait.space.ot,2,function(x) mean(x)-(1.96*(sd(x)/sqrt(nrow(trait.space.ot)))))
-ciu.ot <- apply(trait.space.ot,2,function(x) mean(x)+(1.96*(sd(x)/sqrt(nrow(trait.space.ot)))))
-ot.ci <- cbind(ott.mean,cil.ot,ciu.ot)
-sig.ot <- as.data.frame(ifelse(ot.ci[,1]>cil.ot & ot.ci[,1]<ciu.ot,0,1))
-colnames(sig.ot) <- "one.tree"
-
-cil.lhi <- apply(trait.space.lh,2,function(x) mean(x)-(1.96*(sd(x)/sqrt(nrow(trait.space.lh)))))
-ciu.lhi <- apply(trait.space.lh,2,function(x) mean(x)+(1.96*(sd(x)/sqrt(nrow(trait.space.lh)))))
-lhi.ci <- cbind(lhit.mean,cil.lhi,ciu.lhi)
-sig.lhi <- as.data.frame(ifelse(lhi.ci[,1]>cil.lhi & lhi.ci[,1]<ciu.lhi,0,1))
-colnames(sig.lhi) <- "lord.howe"
-
-sig <- cbind(sig.liz,sig.ot,sig.lhi)
-
-######### AH! BUT THIS IS CONFIDENCE INTERVAL OF THE MEAN
-## not what I want to find
-
-summary(trait.space.lh)
-
-liz95 <- t(as.data.frame(apply(trait.space.liz,2,function(x) quantile(x,probs=c(.025,.975)))))
-ot95 <- t(as.data.frame(apply(trait.space.ot,2,function(x) quantile(x,probs=c(.025,.975)))))
-lh95 <- t(as.data.frame(apply(trait.space.lh,2,function(x) quantile(x,probs=c(.025,.975)))))
-liz95 <- cbind(liz95,lizt.mean)
-ot95 <- cbind(ot95,ott.mean)
-lh95 <- cbind(lh95,lhit.mean)
-
-sig.liz <- as.data.frame(ifelse(liz95[,3]>liz95[,1] & liz95[,3]<liz95[,2],0,1))
-colnames(sig.liz) <- "lizard"
-sig.ot <- as.data.frame(ifelse(ot95[,3]>ot95[,1] & ot95[,3]<ot95[,2],0,1))
-colnames(sig.ot) <- "one.tree"
-sig.lhi <- as.data.frame(ifelse(lh95[,3]>lh95[,1] & lh95[,3]<lh95[,2],0,1))
-colnames(sig.lhi) <- "lord.howe"
-sig <- cbind(sig.liz,sig.ot,sig.lhi)
-sig
+sig.res <- sig.table(lizCI,otCI,lhiCI)
+sig.res 
 
 
 ##############################################

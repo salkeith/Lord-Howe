@@ -1,0 +1,21 @@
+# SK 05/08/2014
+
+# Function to plot histograms of trait distributions from random draws
+# with vertical line for observed mean trait value
+
+plot.trait <- function(island.name,island.trait.mean,trait.space.res){
+   pdf(paste(island.name,"trait histograms random draw.pdf"))
+   par(mfcol=c(3,2))
+   # plot variables with -1, 0, 1 values
+   for(z in c(6,7,9:11)){
+      hist(trait.space.res[,z],main=colnames(trait.space.res)[z],xlim=c(-1,1)) # random values
+      abline(v=island.trait.mean[z],col=2)  # observed value
+   }
+   # plot variables with continuous values
+   par(mfcol=c(3,3))
+   for(z in c(1:5,8,12,13)){
+      hist(trait.space.res[,z],main=colnames(trait.space.res)[z]) # random values
+      abline(v=island.trait.mean[z],col=2) # observed value
+   }
+   dev.off()   
+}

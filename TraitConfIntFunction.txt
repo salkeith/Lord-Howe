@@ -1,0 +1,8 @@
+# SK 05/08/2014
+
+# Function to find confidence intervals
+trait.CI <- function(island.ts,island.trait.mean,quantile.lower,quantile.upper){
+   traitCI <- t(as.data.frame(apply(island.ts,2,function(x) quantile(x,probs=c(quantile.lower,quantile.upper)))))
+   traitCI <- cbind(traitCI,island.trait.mean)    
+   return(traitCI)
+}

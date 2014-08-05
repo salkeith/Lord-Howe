@@ -1,0 +1,15 @@
+# SK 05/08/2014
+
+# Function to identify traits that are significantly different from the random assemblage.
+# Significance = outside of the 95% confidence interval of the null distribution.
+
+sig.table <- function(island.CI1,island.CI2,island.CI3){
+   sig1 <- as.data.frame(ifelse(island.CI1[,3]>island.CI1[,1] & island.CI1[,3]<island.CI1[,2],0,1))
+   colnames(sig1) <- "island.CT1"
+   sig2 <- as.data.frame(ifelse(island.CI2[,3]>island.CI2[,1] & island.CI2[,3]<island.CI2[,2],0,1))
+   colnames(sig2) <- "island.CT2"
+   sig3 <- as.data.frame(ifelse(island.CI3[,3]>island.CI3[,1] & island.CI3[,3]<island.CI3[,2],0,1))
+   colnames(sig3) <- "island.CT3"
+   sig <- cbind(sig1,sig2,sig3)
+   return(sig)
+}

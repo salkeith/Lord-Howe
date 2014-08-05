@@ -1,0 +1,19 @@
+# SK 05/08/2014
+
+# Function for generating trait space (distributions) in random assemblages
+# i.e., mean of each trait for each random draw
+
+trait.space <- function(island.name,ndraw=1000){
+   # prepare data frame to hold result
+   trait.space.res <- as.data.frame(matrix(nrow=ndraw,ncol=ncol(traits)-1))
+   colnames(trait.space.res) <- colnames(traits)[2:ncol(traits)]
+   # loop through random draws
+   for(i in 1:ndraw){
+      rd <- as.data.frame(sample(aus.sp,island.name,replace=F))  
+      colnames(rd) <- "species"
+      # merge randomly drawn species with traits
+      rdt <- merge(rd,traits,by="species")
+      trait.space.res[i,] <- colMeans(rdt[,2:ncol(rdt)],na.rm=T)
+   }
+   return(trait.space.res)
+}
