@@ -177,80 +177,54 @@ lhit.mean <- colMeans(lhit[,2:ncol(lizt)],na.rm=T)
 
 ndraw <- 10000  # set number of random draws
 
-#### LIZARD
-# random draws of species for Lizard
-# Generate trait space (distributions) for each trait in random assemblage
-trait.space.liz <- as.data.frame(matrix(nrow=ndraw,ncol=ncol(traits)-1))
-colnames(trait.space.liz) <- colnames(traits)[2:ncol(traits)]
-for(i in 1:ndraw){
-   rd <- as.data.frame(sample(aus.sp,liz,replace=F))  
-   colnames(rd) <- "species"
-   rdt <- merge(rd,traits,by="species")
-   trait.space.liz[i,] <- colMeans(rdt[,2:ncol(rdt)],na.rm=T)
+# Function for generating trait space (distributions) in random assemblages
+# i.e., mean of each trait for each random draw
+trait.space <- function(island.name,ndraw=1000){
+   # prepare data frame to hold result
+   trait.space.res <- as.data.frame(matrix(nrow=ndraw,ncol=ncol(traits)-1))
+   colnames(trait.space.res) <- colnames(traits)[2:ncol(traits)]
+   # loop through random draws
+   for(i in 1:ndraw){
+      rd <- as.data.frame(sample(aus.sp,island.name,replace=F))  
+      colnames(rd) <- "species"
+      # merge randomly drawn species with traits
+      rdt <- merge(rd,traits,by="species")
+      trait.space.res[i,] <- colMeans(rdt[,2:ncol(rdt)],na.rm=T)
+   }
+   return(trait.space.res)
 }
 
-pdf("Lizard trait histograms random draw.pdf")
-par(mfcol=c(3,2))
-for(z in c(6,7,9:11)){
-   hist(trait.space.liz[,z],main=colnames(trait.space.liz)[z],xlim=c(-1,1)) # random values
-   abline(v=lizt.mean[z],col=2)  # observed value
-}
-par(mfcol=c(3,3))
-for(z in c(1:5,8,12,13)){
-   hist(trait.space.liz[,z],main=colnames(trait.space.liz)[z]) # random values
-   abline(v=lizt.mean[z],col=2) # observed value
-}
-dev.off()
-
-#### ONE TREE
-# random draws of species for One Tree
-trait.space.ot <- as.data.frame(matrix(nrow=ndraw,ncol=ncol(traits)-1))
-colnames(trait.space.ot) <- colnames(traits)[2:ncol(traits)]
-for(i in 1:ndraw){
-   rd <- as.data.frame(sample(aus.sp,ot,replace=F))  
-   colnames(rd) <- "species"
-   rdt <- merge(rd,traits,by="species")
-   trait.space.ot[i,] <- colMeans(rdt[,2:ncol(rdt)],na.rm=T)
+# Function to plot histograms of trait distributions from random draws
+# with vertical line for observed mean trait value
+plot.trait <- function(island.name,trait.mean,trait.space.res){
+   pdf(paste(island.name,"trait histograms random draw.pdf"))
+   par(mfcol=c(3,2))
+   # plot variables with -1, 0, 1 values
+   for(z in c(6,7,9:11)){
+      hist(trait.space.res[,z],main=colnames(trait.space.res)[z],xlim=c(-1,1)) # random values
+      abline(v=trait.mean[z],col=2)  # observed value
+   }
+   # plot variables with continuous values
+   par(mfcol=c(3,3))
+   for(z in c(1:5,8,12,13)){
+      hist(trait.space.res[,z],main=colnames(trait.space.res)[z]) # random values
+      abline(v=trait.mean[z],col=2) # observed value
+   }
+   dev.off()   
 }
 
-pdf("OneTree trait histograms random draw.pdf")
-par(mfcol=c(3,3))
-for(z in c(6,7,9:11)){
-   hist(trait.space.ot[,z],main=colnames(trait.space.ot)[z],xlim=c(-1,1)) # random values
-   abline(v=ott.mean[z],col=2)  # observed value
-}
-par(mfcol=c(3,3))
-for(z in c(1:5,8,12,13)){
-   hist(trait.space.ot[,z],main=colnames(trait.space.ot)[z]) # random values
-   abline(v=ott.mean[z],col=2) # observed value
-}
-dev.off()
+# Lizard Island random draws
+liz.ts <- trait.space(liz,ndraw)
+plot.trait("Lizard",lizt.mean,liz.ts)
+# One Tree Island random draws
+ot.ts <- trait.space(ot,ndraw)
+plot.trait("One Tree",ott.mean,ot.ts)
+# Lord Howe Island random draws
+lhi.ts <- trait.space(lhi,ndraw)
+plot.trait("Lord Howe",lhit.mean,lhi.ts)
 
 
-#### LORD HOWE
-# random draws of species for Lord Howe
-trait.space.lh <- as.data.frame(matrix(nrow=ndraw,ncol=ncol(traits)-1))
-colnames(trait.space.lh) <- colnames(traits)[2:ncol(traits)]
-for(i in 1:ndraw){
-   rd <- as.data.frame(sample(aus.sp,lhi,replace=F))  
-   colnames(rd) <- "species"
-   rdt <- merge(rd,traits,by="species")
-   trait.space.lh[i,] <- colMeans(rdt[,2:ncol(rdt)],na.rm=T)
-}
 
-pdf("LordHowe trait histograms random draw.pdf")
-par(mfcol=c(3,3))
-for(z in c(6,7,9:11)){
-   hist(trait.space.lh[,z],main=colnames(trait.space.lh)[z],xlim=c(-1,1)) # random values
-   abline(v=lhit.mean[z],col=2)  # observed value
-}
-par(mfcol=c(3,3))
-for(z in c(1:5,8,12,13)){
-   hist(trait.space.lh[,z],main=colnames(trait.space.lh)[z]) # random values
-   abline(v=lhit.mean[z],col=2) # observed value
-}
-
-dev.off()
 
 
 ##### CALCULATE 95% CONFIDENCE INTERVALS
@@ -294,3 +268,19 @@ sig.lhi <- as.data.frame(ifelse(lh95[,3]>lh95[,1] & lh95[,3]<lh95[,2],0,1))
 colnames(sig.lhi) <- "lord.howe"
 sig <- cbind(sig.liz,sig.ot,sig.lhi)
 sig
+
+
+##############################################
+##############################################
+
+# SK 05/08/2014
+## INCIDENCE WEIGHTED RANDOM DRAWS
+
+
+
+
+##############################################
+##############################################
+
+## ABUNDANCE INCIDENCE WEIGHTED RANDOM DRAWS
+
