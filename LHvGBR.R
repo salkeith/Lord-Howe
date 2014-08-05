@@ -159,7 +159,7 @@ colnames(lhi.sp) <- "species"
 
 # Which traits do we want to include?
 colnames(traits)
-traits <- traits[,c(1,9,13,14:17,20,21,23,30:34)]
+traits <- traits[,c(1,13,14:17,20,21,23,30:34)]
 # convert all columns to numeric format
 for(i in 2:ncol(traits)){
    traits[,i] <- as.numeric(traits[,i])
@@ -191,12 +191,12 @@ for(i in 1:ndraw){
 
 pdf("Lizard trait histograms random draw.pdf")
 par(mfcol=c(3,2))
-for(z in c(1,7,8,10:12)){
+for(z in c(6,7,9:11)){
    hist(trait.space.liz[,z],main=colnames(trait.space.liz)[z],xlim=c(-1,1)) # random values
    abline(v=lizt.mean[z],col=2)  # observed value
 }
 par(mfcol=c(3,3))
-for(z in c(2:6,9,13,14)){
+for(z in c(1:5,8,12,13)){
    hist(trait.space.liz[,z],main=colnames(trait.space.liz)[z]) # random values
    abline(v=lizt.mean[z],col=2) # observed value
 }
@@ -215,12 +215,12 @@ for(i in 1:ndraw){
 
 pdf("OneTree trait histograms random draw.pdf")
 par(mfcol=c(3,3))
-for(z in c(1,7,8,10:12)){
+for(z in c(6,7,9:11)){
    hist(trait.space.ot[,z],main=colnames(trait.space.ot)[z],xlim=c(-1,1)) # random values
    abline(v=ott.mean[z],col=2)  # observed value
 }
 par(mfcol=c(3,3))
-for(z in c(2:6,9,13,14)){
+for(z in c(1:5,8,12,13)){
    hist(trait.space.ot[,z],main=colnames(trait.space.ot)[z]) # random values
    abline(v=ott.mean[z],col=2) # observed value
 }
@@ -240,12 +240,12 @@ for(i in 1:ndraw){
 
 pdf("LordHowe trait histograms random draw.pdf")
 par(mfcol=c(3,3))
-for(z in c(1,7,8,10:12)){
+for(z in c(6,7,9:11)){
    hist(trait.space.lh[,z],main=colnames(trait.space.lh)[z],xlim=c(-1,1)) # random values
    abline(v=lhit.mean[z],col=2)  # observed value
 }
 par(mfcol=c(3,3))
-for(z in c(2:6,9,13,14)){
+for(z in c(1:5,8,12,13)){
    hist(trait.space.lh[,z],main=colnames(trait.space.lh)[z]) # random values
    abline(v=lhit.mean[z],col=2) # observed value
 }
