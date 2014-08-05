@@ -1,5 +1,4 @@
 # SK 07/07/2014
-#
 
 ########################################
 
@@ -180,6 +179,7 @@ ndraw <- 10000  # set number of random draws
 
 #### LIZARD
 # random draws of species for Lizard
+# Generate trait space (distributions) for each trait in random assemblage
 trait.space.liz <- as.data.frame(matrix(nrow=ndraw,ncol=ncol(traits)-1))
 colnames(trait.space.liz) <- colnames(traits)[2:ncol(traits)]
 for(i in 1:ndraw){
@@ -190,14 +190,14 @@ for(i in 1:ndraw){
 }
 
 pdf("Lizard trait histograms random draw.pdf")
-par(mfcol=c(3,3))
-for(z in c(1,2,4:6,13:15)){
-   hist(trait.space.liz[,z],main=colnames(trait.space.liz)[z]) # random values
+par(mfcol=c(3,2))
+for(z in c(1,7,8,10:12)){
+   hist(trait.space.liz[,z],main=colnames(trait.space.liz)[z],xlim=c(-1,1)) # random values
    abline(v=lizt.mean[z],col=2)  # observed value
 }
 par(mfcol=c(3,3))
-for(z in c(3,7:12,16,17)){
-   hist(trait.space.liz[,z],main=colnames(trait.space.liz)[z],xlim=c(0,1)) # random values
+for(z in c(2:6,9,13,14)){
+   hist(trait.space.liz[,z],main=colnames(trait.space.liz)[z]) # random values
    abline(v=lizt.mean[z],col=2) # observed value
 }
 dev.off()
@@ -215,13 +215,13 @@ for(i in 1:ndraw){
 
 pdf("OneTree trait histograms random draw.pdf")
 par(mfcol=c(3,3))
-for(z in c(1,2,4:6,13:15)){
-   hist(trait.space.ot[,z],main=colnames(trait.space.ot)[z]) # random values
+for(z in c(1,7,8,10:12)){
+   hist(trait.space.ot[,z],main=colnames(trait.space.ot)[z],xlim=c(-1,1)) # random values
    abline(v=ott.mean[z],col=2)  # observed value
 }
 par(mfcol=c(3,3))
-for(z in c(3,7:12,16,17)){
-   hist(trait.space.ot[,z],main=colnames(trait.space.ot)[z],xlim=c(0,1)) # random values
+for(z in c(2:6,9,13,14)){
+   hist(trait.space.ot[,z],main=colnames(trait.space.ot)[z]) # random values
    abline(v=ott.mean[z],col=2) # observed value
 }
 dev.off()
@@ -240,13 +240,13 @@ for(i in 1:ndraw){
 
 pdf("LordHowe trait histograms random draw.pdf")
 par(mfcol=c(3,3))
-for(z in c(1,2,4:6,13:15)){
-   hist(trait.space.lh[,z],main=colnames(trait.space.lh)[z]) # random values
+for(z in c(1,7,8,10:12)){
+   hist(trait.space.lh[,z],main=colnames(trait.space.lh)[z],xlim=c(-1,1)) # random values
    abline(v=lhit.mean[z],col=2)  # observed value
 }
 par(mfcol=c(3,3))
-for(z in c(3,7:12,16,17)){
-   hist(trait.space.lh[,z],main=colnames(trait.space.lh)[z],xlim=c(0,1)) # random values
+for(z in c(2:6,9,13,14)){
+   hist(trait.space.lh[,z],main=colnames(trait.space.lh)[z]) # random values
    abline(v=lhit.mean[z],col=2) # observed value
 }
 
