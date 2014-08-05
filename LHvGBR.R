@@ -1,10 +1,21 @@
 # SK 07/07/2014
 
-########################################
+##########################################################################
 
 ## LORD HOWE VS GBR BREAK
+## DOES LORD HOWE HAVE A SIGNIFICANTLY DIFFERENT TRAIT COMPOSITION FROM 
+## NULL MODEL AND FROM GBR ASSEMBLAGES?
 
-########################################
+## COLLABORATORS: ANDREW BAIRD, ERIKA WOOLSEY, MARIA BYRNE
+
+#########################################################################
+
+
+###################################################
+###################################################
+
+## REFORMAT ORIGINAL DATA FROM E. WOOLSEY SO IT 
+## CAN BE EASILY USED IN R
 
 d <- read.csv("Cover_Matrix2.csv")
 head(d)
@@ -65,7 +76,7 @@ save(cover.data,file="LongFormatCoverData.RData")
 ############################################################
 ############################################################
 
-## LOAD PREPARED DATA
+## LOAD PREPARED DATA AND RUN NMDS & ANOSIM
 
 load("LongFormatCoverData.RData")
 head(cover.data)
@@ -122,7 +133,7 @@ MDSax2 <- MDSax[,2]
 #############################################
 #############################################
 
-## NULL MODEL OF SOURCE POOL
+## PREP DATA FOR NULL MODEL OF SOURCE POOL
 
 traits <- read.csv("CoralTraitsAug2014SK.csv")
 load("species by province matrix, published data.RData")
