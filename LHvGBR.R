@@ -188,6 +188,7 @@ lhit.mean <- colMeans(lhit[,2:ncol(lizt)],na.rm=T)
 
 ############################################
 ############################################
+# SK 05/08/2014
 # GENERATE NULL MODEL AND OUTPUT RESULTS
 # AS PDF FILE OF HISTOGRAMS
 
@@ -197,13 +198,13 @@ source("PlotTraitDistributionFunction.txt")
 ndraw <- 10000  # set number of random draws
 
 # Lizard Island random draws
-liz.ts <- trait.space(liz,ndraw)
+liz.ts <- trait.space(liz,aus.sp,ndraw)
 plot.trait("Lizard",lizt.mean,liz.ts)
 # One Tree Island random draws
-ot.ts <- trait.space(ot,ndraw)
+ot.ts <- trait.space(ot,aus.sp,ndraw)
 plot.trait("One Tree",ott.mean,ot.ts)
 # Lord Howe Island random draws
-lhi.ts <- trait.space(lhi,ndraw)
+lhi.ts <- trait.space(lhi,aus.sp,ndraw)
 plot.trait("Lord Howe",lhit.mean,lhi.ts)
 
 
@@ -227,7 +228,6 @@ sig.res
 ##############################################
 ##############################################
 
-# SK 05/08/2014
 ## INCIDENCE WEIGHTED RANDOM DRAWS
 
 # Load data from AB with abundance of GBR species
@@ -249,8 +249,32 @@ colnames(inc) <- c("species","transects","sites","reefs")
 # save data frame with species incidence at transect, site and reef level
 save(inc,file="SpeciesIncidenceGBR.RData")
 
+# SK 06/08/2014
+# how many of the species from the islands are represented in AB data?
+length(merge(lizt,inc,by="species")[,1])  # 70 out of 84
+length(merge(ott,inc,by="species")[,1])   # 49 out of 65
+length(merge(lhit,inc,by="species")[,1])  # 25 out of 30
+# we don't know the incidence of the missing species so use a probability
+# of sampling = 0.5 for those. Creates some issues though!
+# Merge and keep all species present on the islands (i.e., all.x=TRUE)
+lizt.inc <- merge(lizt,inc,by="species",all.x=T) 
+ott.inc <- merge(ott,inc,by="species",all.x=T)
+lhit.inc <- merge(lhit,inc,by="species",all.x=T)
+# convert incidence to 'probability', divide each incidence by column sum
+# replace NA values for incidence with ??? Median? Lowest? <lowest? half the lowest?
+
+transects.w <- round(lizt.inc[,15]/sum(lizt.inc[,15],na.rm=T),3)
+median(transects.w,na.rm=T)
+
+colnames(lizt.inc) <- c(colnames(lizt.inc)[1:17],"transects.w","sites.w","reefs.w")
+
+
+
+liz.ts <- trait.space(liz,ndraw,weights=  )
+
+
 ##############################################
 ##############################################
 
-## ABUNDANCE INCIDENCE WEIGHTED RANDOM DRAWS
+## ABUNDANCE WEIGHTED RANDOM DRAWS
 
