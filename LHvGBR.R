@@ -11,6 +11,11 @@
 
 #########################################################################
 
+library(vegan)
+library(lme4)
+library(visreg)
+library(reshape)
+library(MuMIn)
 
 ###################################################
 ###################################################
@@ -29,7 +34,7 @@ d[1:10,1:10]
 # how many species?
 nsp <- nrow(spd)
 
-library(reshape)
+
 d2 <- melt(d)
 d3 <- cbind(rep(rownames(d),ncol(d)),d2)
 head(d3)
@@ -82,8 +87,6 @@ save(cover.data,file="LongFormatCoverData.RData")
 load("LongFormatCoverData.RData")
 head(cover.data)
 
-library(vegan)
-
 spbysite <- rel.cover.mat[,-1]
 rownames(spbysite) <- rel.cover.mat[,1]
 
@@ -129,10 +132,17 @@ MDSax <- MDS$points
 MDSax1 <- MDSax[,1]
 MDSax2 <- MDSax[,2]
 
+MDSsp <- MDS$species
+MDSsp <- as.data.frame(MDSsp[,1:2])
+MDSsp <- cbind(rownames(MDSsp),MDSsp)
+colnames(MDSsp) <- c("species","ax1","ax2")
+rownames(MDSsp) <- NULL
+
 
 #############################################
 #############################################
 
+# SK 06/08/2014
 ## PREP DATA FOR MIXED EFFECTS MODEL
 ## BASED ON NMDS AXIS SCORES
 
@@ -145,8 +155,205 @@ for(i in 2:ncol(traits)){
 }
 str(traits)
 
-lizt <- merge(liz.sp,traits,by="species")
-ott <- merge(ot.sp,traits,by="species")
-lhit <- merge(lhi.sp,traits,by="species")
+# merge species traits with NMDS axis scores
+sptr <- merge(MDSsp,traits,by="species")
+save(sptr,file="SpeciesAxisScoresTraits.RData")
+
+
+####################################################
+####################################################
+
+## REGRESSION MODEL
+## HOW WELL CAN TRAITS PREDICT THE NMDS AXIS SCORE?
+
+####################################################
+####################################################
+
+load("SpeciesAxisScoresTraits.RData")
+
+###################################################
+## REGRESSION DIAGNOSTICS
+
+# normalize trait data (mean = 0, sd = 1)
+t.norm <- scale(sptr[4:ncol(sptr)])
+
+# visualise distribution of values for each normalized variable
+par(mfcol=c(3,3))
+for(z in 1:9){
+   hist(t.norm[,z], main = colnames(t.norm)[z])
+}
+par(mfcol=c(3,2))
+for(z in 10:ncol(t.norm)){
+   hist(t.norm[,z], main = colnames(t.norm)[z])
+}
+
+# check collinearity of traits
+pairs(t.norm)
+multcol <- cor(t.norm,use="complete.obs")
+multcol< (-0.6) | multcol>0.6
+# CORRELATIONS:
+# depth range & lower depth
+# larval development mode & egg size class
+# ACTION:
+# remove lower depth because less information than depth range
+# remove egg size class - doesn't fit as clearly into our hypotheses
+t.norm <- t.norm[,-c(3,13)]
+
+# put data together into one data frame ready for regression
+d <- cbind(sptr[,1:3],t.norm)
+colnames(d) <- c(colnames(d)[1:3],"valley.size","colony.size","upp.depth","depth.range",
+                 "wave.exposure","water.clarity","genus.age","sex","larval.mode","zoox","egg.diam")
+summary(d)
+# colony size is NA for 12 species. Remove trait.
+d <- d[,-5]
+
+# check higher order terms for traits
+for(i in 4:length(d)){
+   par(mfcol=c(2,2))
+   print(colnames(d)[i])
+   lin <- lm(ax1~d[,i],data=d)
+   plot(lin)
+   quad <- lm(ax1~d[,i]+I(d[,i]^2),data=d)
+   cub <- lm(ax1~d[,i]+I(d[,i]^2)+I(d[,i]^3),data=d)
+   print(AICc(lin,quad,cub))
+}
+
+# valley size is best as cubic
+# upper depth is best as quadratic
+
+# Regression diagnostics show approximately normal distribution of residuals
+# row 46 is a strong outlier - sqrt(standardised residuals) >3
+d[46,]  # large axis one score
+# remove it for now but note that this may skew result!
+d <- d[-46,]
+
+# remove rows with NAs to ensure models all use same underlying data (no na.omit)
+d <- d[-c(59,72,74,76,108,111,113,119),]
+
+# with outlier removed, upper depth can now be linear
+# valley size still cubic
+
+# recheck regression diagnostics
+for(i in 4:length(d)){
+   par(mfcol=c(2,2))
+   print(colnames(d)[i])
+   lin <- lm(ax1~d[,i],data=d)
+   plot(lin)
+}
+par(mfcol=c(2,2))
+cub <- lm(ax1~d[,4]+I(d[,4]^2)+I(d[,4]^3),data=d)
+plot(quad)
+
+# looks good, ready to go
+
+###################################################
+## LINEAR REGRESSION 
+
+# Full model including interactions that make biological sense
+mod <- lm(ax1~valley.size+I(valley.size^2)+I(valley.size^3)+upp.depth+depth.range+wave.exposure+water.clarity+genus.age+sex+
+              larval.mode+zoox+egg.diam+upp.depth*depth.range+wave.exposure*water.clarity+larval.mode*sex+larval.mode*egg.diam+
+              sex*egg.diam,data=d,na.action=na.fail)
+summary(mod)
+
+# remove non-significant interactions
+mod <- lm(ax1~valley.size+I(valley.size^2)+I(valley.size^3)+upp.depth+depth.range+wave.exposure+water.clarity+
+             genus.age+sex+larval.mode+zoox+egg.diam+upp.depth*depth.range,
+             data=d,na.action=na.fail)
+summary(mod)
+
+# take a look at the partial coefficients
+par(mfcol=c(3,4))
+visreg(mod,partial=F)
+
+
+#############################################
+# MODEL SELECTION AND AVERAGING
+# expression so that cubic term cannot be included unless linear & quadratic term present
+# and interaction terms cannot be included without the main effects
+msubset <- expression(c(valley.size|!`I(valley.size^2)`),(`I(valley.size^2)`|!`I(valley.size^3)`),
+                      (upp.depth|!depth.range*upp.depth),(depth.range|!depth.range*upp.depth))
+# model selection by delta < 3 (Bolker 2009) with polynomials
+dmod <- dredge(mod,subset=msubset)
+mod.sel <- summary(model.avg(get.models(subset(dmod,delta < 3))))
+mod.sel
+
+save(mod.sel,file="ModelAveragedResult.RData")
+
+
+#############################################
+# MODEL-AVERAGED CONFIDENCE INTERVALS
+cimod<- confint(mod.sel)
+# full model-averaged coefficients not needed because all models in the set contain
+# both interaction terms and main effects, or cubic term
+comod <- coef(mod.sel)
+CImod <- cbind(comod,cimod) 
+CImod
+# return variables that do not have coefficients that overlap zero
+# (i.e., those that are significant)
+# N.B. doesn't apply to interactions or cubic 
+CImod[!(CImod[,2]<0 & CImod[,3]>0),]
+
+
+##############################################
+# RESPONSE PLOTS for significant variables 
+# manual plotting required, visreg doesn't work on model-averged object
+
+par(mfcol=c(2,2))
+
+# LARVAL MODE
+x <- seq(min(d$larval.mode),max(d$larval.mode),length=100)
+larval.pred <- with(d,(predict(mod.sel,se.fit=T,newdata=data.frame(larval.mode=x,
+               depth.range=mean(depth.range),upp.depth=mean(upp.depth),wave.exposure=mean(wave.exposure),
+               water.clarity=mean(water.clarity),valley.size=mean(valley.size),genus.age=mean(genus.age),
+               sex=mean(sex),egg.diam=mean(egg.diam),zoox=mean(zoox)))))
+plot(ax1~larval.mode,data=d,col="lightgray",pch=16,ylab="NMDS Axis 1",
+     xlab="Larval mode",cex.lab=1.5)
+points(larval.pred$fit~x,type="l",col=1,lwd=2)
+lines(larval.pred$fit+larval.pred$se.fit~x,lty=2,type="l")
+lines(larval.pred$fit-larval.pred$se.fit~x,lty=2,type="l")
+
+# WAVE EXPOSURE
+x <- seq(min(d$wave.exposure),max(d$wave.exposure),length=100)
+wave.pred <- with(d,(predict(mod.sel,se.fit=T,newdata=data.frame(wave.exposure=x,
+              depth.range=mean(depth.range),upp.depth=mean(upp.depth),larval.mode=mean(larval.mode),
+              water.clarity=mean(water.clarity),valley.size=mean(valley.size),genus.age=mean(genus.age),
+              sex=mean(sex),egg.diam=mean(egg.diam),zoox=mean(zoox)))))
+plot(ax1~wave.exposure,data=d,col="lightgray",pch=16,ylab="NMDS Axis 1",
+     xlab="Wave exposure",cex.lab=1.5)
+points(wave.pred$fit~x,type="l",col=1,lwd=2)
+lines(wave.pred$fit+wave.pred$se.fit~x,lty=2,type="l")
+lines(wave.pred$fit-wave.pred$se.fit~x,lty=2,type="l")
+
+# VALLEY SIZE
+x <- seq(min(d$valley.size),max(d$valley.size),length=100)
+valley.pred <- with(d,(predict(mod.sel,se.fit=T,newdata=data.frame(valley.size=x,
+             depth.range=mean(depth.range),upp.depth=mean(upp.depth),larval.mode=mean(larval.mode),
+             water.clarity=mean(water.clarity),wave.exposure=mean(wave.exposure),genus.age=mean(genus.age),
+             sex=mean(sex),egg.diam=mean(egg.diam),zoox=mean(zoox)))))
+plot(ax1~valley.size,data=d,col="lightgray",pch=16,ylab="NMDS Axis 1",
+     xlab="Valley size",cex.lab=1.5)
+points(valley.pred$fit~x,type="l",col=1,lwd=2)
+lines(valley.pred$fit+valley.pred$se.fit~x,lty=2,type="l")
+lines(valley.pred$fit-valley.pred$se.fit~x,lty=2,type="l")
+
+# plot interaction 
+# plot depth range as binned variable, upper depth as continuous
+# UPPER DEPTH * DEPTH RANGE
+par(mfrow=c(2,2))
+drbins <- c(-1.5,0,1.5,3)
+for(i in 1:4){
+   drbin <- drbins[i]
+   x <- seq(min(d$upp.depth),max(d$upp.depth),length=100)
+   udepth.pred <- with(d,(predict(mod.sel,se.fit=T,newdata=data.frame(upp.depth=x,
+                        depth.range=drbin,valley.size=mean(valley.size),larval.mode=mean(larval.mode),
+                        water.clarity=mean(water.clarity),wave.exposure=mean(wave.exposure),genus.age=mean(genus.age),
+                        sex=mean(sex),egg.diam=mean(egg.diam),zoox=mean(zoox)))))
+   plot(ax1~upp.depth,data=d,col="lightgray",pch=16,ylab="NMDS Axis 1",
+        xlab="Upper depth",cex.lab=1.5,main=paste("Depth range bin ", drbin,sep=""))
+   points(udepth.pred$fit~x,type="l",col=1,lwd=2)
+   lines(udepth.pred$fit+udepth.pred$se.fit~x,lty=2,type="l")
+   lines(udepth.pred$fit-udepth.pred$se.fit~x,lty=2,type="l")
+}
+
 
 
