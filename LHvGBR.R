@@ -146,11 +146,13 @@ rownames(MDSsp) <- NULL
 ## PREP DATA FOR MIXED EFFECTS MODEL
 ## BASED ON NMDS AXIS SCORES
 
+traits <- read.csv("CoralTraitsAug2014SK.csv")
+
 # Which traits do we want to include?
 colnames(traits)
-traits <- traits[,c(1,13,14:17,20,21,23,30:34)]
+traits <- traits[,c(1,7,13,14:17,20,21,23,30:34)]
 # convert all columns to numeric format
-for(i in 2:ncol(traits)){
+for(i in 3:ncol(traits)){
    traits[,i] <- as.numeric(traits[,i])
 }
 str(traits)
@@ -158,6 +160,8 @@ str(traits)
 # merge species traits with NMDS axis scores
 sptr <- merge(MDSsp,traits,by="species")
 save(sptr,file="SpeciesAxisScoresTraits.RData")
+
+
 
 
 ####################################################
@@ -175,7 +179,7 @@ load("SpeciesAxisScoresTraits.RData")
 ## REGRESSION DIAGNOSTICS
 
 # normalize trait data (mean = 0, sd = 1)
-t.norm <- scale(sptr[4:ncol(sptr)])
+t.norm <- scale(sptr[,5:ncol(sptr)])
 
 # visualise distribution of values for each normalized variable
 par(mfcol=c(3,3))
@@ -200,12 +204,12 @@ multcol< (-0.6) | multcol>0.6
 t.norm <- t.norm[,-c(3,13)]
 
 # put data together into one data frame ready for regression
-d <- cbind(sptr[,1:3],t.norm)
-colnames(d) <- c(colnames(d)[1:3],"valley.size","colony.size","upp.depth","depth.range",
+d <- cbind(sptr[,1:4],t.norm)
+colnames(d) <- c(colnames(d)[1:3],"genus","valley.size","colony.size","upp.depth","depth.range",
                  "wave.exposure","water.clarity","genus.age","sex","larval.mode","zoox","egg.diam")
 summary(d)
 # colony size is NA for 12 species. Remove trait.
-d <- d[,-5]
+d <- d[,-6]
 
 # check higher order terms for traits
 for(i in 4:length(d)){
@@ -245,15 +249,22 @@ cub <- lm(ax1~d[,4]+I(d[,4]^2)+I(d[,4]^3),data=d)
 plot(quad)
 
 # looks good, ready to go
+# save file so don't have to repeat steps above
+save(d,file="DataForRegressionLHI.RData")
+
 
 ###################################################
 ## LINEAR REGRESSION 
 
-# Full model including interactions that make biological sense
-mod <- lm(ax1~valley.size+I(valley.size^2)+I(valley.size^3)+upp.depth+depth.range+wave.exposure+water.clarity+genus.age+sex+
+load(d,file="DataForRegressionLHI.RData")
+
+# Full model including interactions that make biological sense and genus as a random effect
+mod <- lmer(ax1~valley.size+I(valley.size^2)+I(valley.size^3)+upp.depth+depth.range+wave.exposure+water.clarity+genus.age+sex+
               larval.mode+zoox+egg.diam+upp.depth*depth.range+wave.exposure*water.clarity+larval.mode*sex+larval.mode*egg.diam+
-              sex*egg.diam,data=d,na.action=na.fail)
+              sex*egg.diam+(1|genus),data=d,na.action=na.fail)
 summary(mod)
+dotplot(ranef(mod, postVar=TRUE))
+# mixed model not required - very low variance accounted for and overlapping confidence intervals in dotplot
 
 # remove non-significant interactions
 mod <- lm(ax1~valley.size+I(valley.size^2)+I(valley.size^3)+upp.depth+depth.range+wave.exposure+water.clarity+
@@ -279,6 +290,7 @@ mod.sel
 
 save(mod.sel,file="ModelAveragedResult.RData")
 
+write.csv(coefTable(mod.sel),"ModelAveragedCoefs.csv")
 
 #############################################
 # MODEL-AVERAGED CONFIDENCE INTERVALS
@@ -293,10 +305,13 @@ CImod
 # N.B. doesn't apply to interactions or cubic 
 CImod[!(CImod[,2]<0 & CImod[,3]>0),]
 
+write.csv(CImod,"ModelAveragedCoefs95CI.csv")
 
 ##############################################
 # RESPONSE PLOTS for significant variables 
 # manual plotting required, visreg doesn't work on model-averged object
+
+pdf("PartialCoefsLordHoweTraits.pdf")
 
 par(mfcol=c(2,2))
 
@@ -355,5 +370,6 @@ for(i in 1:4){
    lines(udepth.pred$fit-udepth.pred$se.fit~x,lty=2,type="l")
 }
 
+dev.off()
 
 
