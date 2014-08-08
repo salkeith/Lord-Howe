@@ -16,6 +16,7 @@ library(lme4)
 library(visreg)
 library(reshape)
 library(MuMIn)
+library(effects)
 
 ###################################################
 ###################################################
@@ -307,8 +308,9 @@ CImod[!(CImod[,2]<0 & CImod[,3]>0),]
 
 write.csv(CImod,"ModelAveragedCoefs95CI.csv")
 
-##############################################
-# RESPONSE PLOTS for significant variables 
+
+#######################################################
+# PARTIAL COEFFICIENT PLOTS for significant variables 
 # manual plotting required, visreg doesn't work on model-averged object
 
 pdf("PartialCoefsLordHoweTraits.pdf")
@@ -371,5 +373,258 @@ for(i in 1:4){
 }
 
 dev.off()
+
+
+
+############################################################
+## PLOT PARTIAL COEFFICIENTS WITH 95% CONFIDENCE INTERVALS
+
+# LARVAL MODE
+x<-seq(min(d$larval.mode),max(d$larval.mode),length=100)
+plot(d$larval.mode,d$ax1,pch=20,cex=0.5,col="grey") 
+y3 <- CImod[1,1] + CImod[3,1]*x 
+lines(x,y3,lwd=2) 
+# Confidence intervals 
+y3 <- CImod[1,2] + CImod[3,2]*x 
+y4 <- CImod[1,3] + CImod[3,3]*x 
+# create polygon so the CI region is filled in
+xx <- cbind(x,rev(x))
+yy <- cbind(y3,rev(y4))
+# for rgb the last number is transparency
+polygon(xx, yy, col=rgb(0.05,0.05,0.05,0.2),border=NA)
+  
+# WAVE EXPOSURE
+x<-seq(min(d$wave.exposure),max(d$wave.exposure),length=100)
+plot(d$wave.exposure,d$ax1,pch=20,cex=0.5,col="grey") 
+y3 <- CImod[1,1] + CImod[8,1]*x 
+lines(x,y3,lwd=2) 
+# Confidence intervals 
+y3 <- CImod[1,2] + CImod[8,2]*x 
+y4 <- CImod[1,3] + CImod[8,3]*x 
+# create polygon so the CI region is filled in
+xx <- cbind(x,rev(x))
+yy <- cbind(y3,rev(y4))
+# for rgb the last number is transparency
+polygon(xx, yy, col=rgb(0.05,0.05,0.05,0.2),border=NA)
+
+# VALLEY SIZE
+x<-seq(min(d$valley.size),max(d$valley.size),length=100)
+plot(d$valley.size,d$ax1,pch=20,cex=0.5,col="grey") 
+y3 <- CImod[1,1] + CImod[5,1]*x + CImod[6,1]*x^2 + CImod[7,1]*x^3 
+lines(x,y3,lwd=2) 
+# Confidence intervals 
+y3 <- CImod[1,2] + CImod[5,2]*x + CImod[6,2]*x^2 + CImod[7,2]*x^3  
+y4 <- CImod[1,3] + CImod[5,3]*x + CImod[6,3]*x^2 + CImod[7,3]*x^3 
+# create polygon so the CI region is filled in
+xx <- cbind(x,rev(x))
+yy <- cbind(y3,rev(y4))
+# for rgb the last number is transparency
+polygon(xx, yy, col=rgb(0.05,0.05,0.05,0.2),border=NA)
+
+## WTF?!
+
+
+
+#################################################################
+#################################################################
+
+## I'VE READ SOME STUFF THAT SAYS DON'T USE CUBIC SO TRY WITHOUT
+
+#################################################################
+#################################################################
+
+# SK 07/08/2014
+
+# linear has lower AICc than quadratic for valley size
+mod <- lm(ax1~valley.size+upp.depth+depth.range+wave.exposure+water.clarity+
+             genus.age+sex+larval.mode+zoox+egg.diam+upp.depth*depth.range,
+          data=d,na.action=na.fail)
+summary(mod)
+
+# take a look at the partial coefficients
+par(mfcol=c(3,4))
+visreg(mod,partial=F)
+
+# MODEL SELECTION AND AVERAGING
+# expression so that cubic term cannot be included unless linear & quadratic term present
+# and interaction terms cannot be included without the main effects
+msubset <- expression(c(upp.depth|!depth.range*upp.depth),(depth.range|!depth.range*upp.depth))
+# model selection by delta < 3 (Bolker 2009) with polynomials
+dmod <- dredge(mod,subset=msubset)
+mod.sel <- summary(model.avg(get.models(subset(dmod,delta < 3))))
+mod.sel
+
+best.mod <- lm(ax1~upp.depth+depth.range+wave.exposure+water.clarity+
+                  larval.mode+upp.depth*depth.range,data=d,na.action=na.fail)
+summary(best.mod)
+
+# PLOT INTERACTION BETWEEN DEPTH VARIABLES
+# N.B. the function above doesnt work with model averaged result
+plot(effect(term="upp.depth:depth.range",mod=best.mod,default.levels=5),multiline=TRUE)
+z <- effect(term="upp.depth:depth.range",mod=best.mod,default.levels=5)
+# gives coefficients & CIs for each depth bin
+summary(z)  
+# plot all partial coefficients on the same screen - cool :)
+z <- allEffects(mod=best.mod,default.levels=4)
+pdf("AllEffectsBestModel.pdf")
+plot(z)
+dev.off()
+
+
+#############################################
+# MODEL-AVERAGED CONFIDENCE INTERVALS
+cimod<- confint(mod.sel)
+# full model-averaged coefficients not needed because all models in the set contain
+# both interaction terms and main effects, or cubic term
+comod <- coef(mod.sel)
+CImod <- cbind(comod,cimod) 
+CImod
+# return variables that do not have coefficients that overlap zero
+# (i.e., those that are significant)
+# N.B. doesn't apply to interactions or cubic 
+CImod[!(CImod[,2]<0 & CImod[,3]>0),]
+
+write.csv(CImod,"ModelAveragedCoefs95CIValleySizeLinear.csv")
+
+
+pdf("PartialCoefsLordHoweTraitsCI.pdf")
+
+# LARVAL MODE
+x<-seq(min(d$larval.mode),max(d$larval.mode),length=100)
+plot(d$larval.mode,d$ax1,pch=20,cex=0.5,col="grey") 
+y3 <- CImod[1,1] + CImod[3,1]*x 
+lines(x,y3,lwd=2) 
+# Confidence intervals 
+y3 <- CImod[1,2] + CImod[3,2]*x 
+y4 <- CImod[1,3] + CImod[3,3]*x 
+# create polygon so the CI region is filled in
+xx <- cbind(x,rev(x))
+yy <- cbind(y3,rev(y4))
+# for rgb the last number is transparency
+polygon(xx, yy, col=rgb(0.05,0.05,0.05,0.2),border=NA)
+
+# WAVE EXPOSURE
+x<-seq(min(d$wave.exposure),max(d$wave.exposure),length=100)
+plot(d$wave.exposure,d$ax1,pch=20,cex=0.5,col="grey") 
+y3 <- CImod[1,1] + CImod[6,1]*x 
+lines(x,y3,lwd=2) 
+# Confidence intervals 
+y3 <- CImod[1,2] + CImod[6,2]*x 
+y4 <- CImod[1,3] + CImod[6,3]*x 
+# create polygon so the CI region is filled in
+xx <- cbind(x,rev(x))
+yy <- cbind(y3,rev(y4))
+# for rgb the last number is transparency
+polygon(xx, yy, col=rgb(0.05,0.05,0.05,0.2),border=NA)
+
+# WATER CLARITY
+x<-seq(min(d$water.clarity),max(d$water.clarity),length=100)
+plot(d$water.clarity,d$ax1,pch=20,cex=0.5,col="grey") 
+y3 <- CImod[1,1] + CImod[5,1]*x  
+lines(x,y3,lwd=2) 
+# Confidence intervals 
+y3 <- CImod[1,2] + CImod[5,2]*x  
+y4 <- CImod[1,3] + CImod[5,3]*x 
+# create polygon so the CI region is filled in
+xx <- cbind(x,rev(x))
+yy <- cbind(y3,rev(y4))
+# for rgb the last number is transparency
+polygon(xx, yy, col=rgb(0.05,0.05,0.05,0.2),border=NA)
+
+
+dev.off()
+
+
+
+#######################################################
+# PARTIAL COEFFICIENT PLOTS for significant variables 
+# manual plotting required, visreg doesn't work on model-averged object
+
+pdf("PartialCoefsLordHoweTraitsSE.pdf")
+
+par(mfcol=c(2,2))
+
+# LARVAL MODE
+x <- seq(min(d$larval.mode),max(d$larval.mode),length=100)
+larval.pred <- with(d,(predict(mod.sel,se.fit=T,newdata=data.frame(larval.mode=x,
+                        depth.range=mean(depth.range),upp.depth=mean(upp.depth),wave.exposure=mean(wave.exposure),
+                        water.clarity=mean(water.clarity),valley.size=mean(valley.size),genus.age=mean(genus.age),
+                        sex=mean(sex),egg.diam=mean(egg.diam),zoox=mean(zoox)))))
+plot(ax1~larval.mode,data=d,col="lightgray",pch=16,ylab="NMDS Axis 1",
+     xlab="Larval mode",cex.lab=1.5)
+points(larval.pred$fit~x,type="l",col=1,lwd=2)
+lines(larval.pred$fit+larval.pred$se.fit~x,lty=2,type="l")
+lines(larval.pred$fit-larval.pred$se.fit~x,lty=2,type="l")
+
+# WAVE EXPOSURE
+x <- seq(min(d$wave.exposure),max(d$wave.exposure),length=100)
+wave.pred <- with(d,(predict(mod.sel,se.fit=T,newdata=data.frame(wave.exposure=x,
+                        depth.range=mean(depth.range),upp.depth=mean(upp.depth),larval.mode=mean(larval.mode),
+                        water.clarity=mean(water.clarity),valley.size=mean(valley.size),genus.age=mean(genus.age),
+                        sex=mean(sex),egg.diam=mean(egg.diam),zoox=mean(zoox)))))
+plot(ax1~wave.exposure,data=d,col="lightgray",pch=16,ylab="NMDS Axis 1",
+     xlab="Wave exposure",cex.lab=1.5)
+points(wave.pred$fit~x,type="l",col=1,lwd=2)
+lines(wave.pred$fit+wave.pred$se.fit~x,lty=2,type="l")
+lines(wave.pred$fit-wave.pred$se.fit~x,lty=2,type="l")
+
+# VALLEY SIZE
+x <- seq(min(d$valley.size),max(d$valley.size),length=100)
+valley.pred <- with(d,(predict(mod.sel,se.fit=T,newdata=data.frame(valley.size=x,
+                        depth.range=mean(depth.range),upp.depth=mean(upp.depth),larval.mode=mean(larval.mode),
+                        water.clarity=mean(water.clarity),wave.exposure=mean(wave.exposure),genus.age=mean(genus.age),
+                        sex=mean(sex),egg.diam=mean(egg.diam),zoox=mean(zoox)))))
+plot(ax1~valley.size,data=d,col="lightgray",pch=16,ylab="NMDS Axis 1",
+     xlab="Water clarity",cex.lab=1.5)
+points(valley.pred$fit~x,type="l",col=1,lwd=2)
+lines(valley.pred$fit+valley.pred$se.fit~x,lty=2,type="l")
+lines(valley.pred$fit-valley.pred$se.fit~x,lty=2,type="l")
+
+# plot interaction 
+# plot depth range as binned variable, upper depth as continuous
+# UPPER DEPTH * DEPTH RANGE
+par(mfrow=c(2,2))
+drbins <- c(-1.5,0,1.5,3)
+for(i in 1:4){
+   drbin <- drbins[i]
+   x <- seq(min(d$upp.depth),max(d$upp.depth),length=100)
+   udepth.pred <- with(d,(predict(mod.sel,se.fit=T,newdata=data.frame(upp.depth=x,
+                        depth.range=drbin,valley.size=mean(valley.size),larval.mode=mean(larval.mode),
+                        water.clarity=mean(water.clarity),wave.exposure=mean(wave.exposure),genus.age=mean(genus.age),
+                        sex=mean(sex),egg.diam=mean(egg.diam),zoox=mean(zoox)))))
+   plot(ax1~upp.depth,data=d,col="lightgray",pch=16,ylab="NMDS Axis 1",
+        xlab="Upper depth",cex.lab=1.5,main=paste("Depth range bin ", drbin,sep=""))
+   points(udepth.pred$fit~x,type="l",col=1,lwd=2)
+   lines(udepth.pred$fit+udepth.pred$se.fit~x,lty=2,type="l")
+   lines(udepth.pred$fit-udepth.pred$se.fit~x,lty=2,type="l")
+}
+
+dev.off()
+
+
+
+##################################################################################
+##################################################################################
+## EXTRA CRAP THAT TURNED OUT NOT TO BE SO HELPFUL
+
+## TRY OUT A GAM
+mod.gam <- gam(ax1~valley.size+upp.depth+depth.range+wave.exposure+water.clarity+
+             genus.age+sex+larval.mode+zoox+egg.diam+upp.depth*depth.range,
+          data=d,family="gaussian",na.action=na.fail)
+summary(mod.gam)
+1-pchisq(mod.gam$deviance,mod.gam$df.resid)
+
+
+## EXPLORE PREDICT 95% CI ERROR MESSAGE WITH MORE SIMPLE MODEL
+mod.test <- lm(ax1~valley.size+upp.depth,data=d,na.action=na.fail)
+# model selection by delta < 3 (Bolker 2009) with polynomials
+dmod <- dredge(mod.test)
+mod.sel.test <- summary(model.avg(get.models(subset(dmod,delta < 3))))
+mod.sel.test
+x <- seq(min(d$valley.size),max(d$valley.size),length=100)
+valley.pred <- with(d,(predict(mod.sel.test,interval="c",level=0.95,se.fit=T,newdata=data.frame(valley.size=x,
+                        upp.depth=mean(upp.depth)))))
+
+
 
 
