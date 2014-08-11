@@ -89,24 +89,34 @@ load("LongFormatCoverData.RData")
 head(cover.data)
 
 spbysite <- rel.cover.mat[,-1]
-rownames(spbysite) <- rel.cover.mat[,1]
+sitebysp <- t(spbysite)
+colnames(sitebysp) <- rel.cover.mat[,1]
 
 island.short <- rep(c("lizard","one.tree","lord.howe"),c(73,58,72))
 region <- rep(c("GBR","lord.howe"),c(73+58,72))
 habitat.short <- rep(c("lagoon","crest","lagoon","crest","crest","lagoon"),c(36,37,36,22,36,36))
-anosim(t(spbysite),island.short,permutations=1000,distance="bray")
-anosim(t(spbysite),region,permutations=1000,distance="bray")
-anosim(t(spbysite),habitat.short,permutations=1000,distance="bray")
+anosim(sitebysp,island.short,permutations=1000,distance="bray")
+anosim(sitebysp,region,permutations=1000,distance="bray")
+anosim(sitebysp,habitat.short,permutations=1000,distance="bray")
 
 # ANOSIM between each island pair
 island.LizOT <- rep(c("lizard","one.tree"),c(73,58))
-anosim(t(spbysite[,1:131]),island.LizOT,permutations=1000,distance="bray")
+anosim(sitebysp[1:131,],island.LizOT,permutations=1000,distance="bray")
 island.LizLH <- rep(c("lizard","lord.howe"),c(73,72))
-anosim(t(spbysite[,c(1:73,132:203)]),island.LizLH,permutations=1000,distance="bray")
+anosim(sitebysp[c(1:73,132:203),],island.LizLH,permutations=1000,distance="bray")
 island.LHOT <- rep(c("one.tree","lord.howe"),c(58,72))
-anosim(t(spbysite[,74:203]),island.LHOT,permutations=1000,distance="bray")
+anosim(sitebysp[74:203,],island.LHOT,permutations=1000,distance="bray")
 
-MDS <- metaMDS(t(spbysite),trymax=50)
+lizot.simper <- simper(sitebysp[1:131,],island.LizOT)
+summary(lizot.simper,digits=2)
+lizlh.simper <- simper(sitebysp[c(1:73,132:203),],island.LizLH)
+summary(lizlh.simper,digits=2)
+otlh.simper <- simper(sitebysp[74:203,],island.LHOT)
+summary(otlh.simper,digits=2)
+gbrlh.simper <- simper(sitebysp,region)
+summary(gbrlh.simper,digits=2)
+
+MDS <- metaMDS(sitebysp,trymax=50)
 plot(MDS)
 MDS$points
 
@@ -645,6 +655,25 @@ tsd <- apply(sptr[,5:ncol(sptr)],2,function(x) sd(x,na.rm=T))
 we <- rep()
 x <- -1*tsd[6]
 x+tmean[6]
+
+
+
+##################################################################################
+##################################################################################
+## SIZE DISTRIBUTIONS
+
+hist(log(sitebysp[1:73,]),na.rm=T,main="Lizard",xlim=c(-6,0),breaks=10)
+hist(log(sitebysp[74:131,]),na.rm=T,main="One Tree",xlim=c(-6,0),breaks=10)
+hist(log(sitebysp[131:203]),na.rm=T,main="Lord Howe",xlim=c(-6,0),breaks=10)
+
+par(mfcol=c(1,1))
+plot(density(log(sitebysp[131:203]),bw=0.25),col=1,lty=1,xlim=c(-6,0),main="size intercept class")
+lines(density(log(sitebysp[1:73,]),bw=0.25),col=1,lty=1,lwd=3)
+lines(density(log(sitebysp[74:131,]),bw=0.25),col=1,lty=2) 
+legend("topleft",c("Lizard","One Tree","Lord Howe"),lty=c(1,2,1),lwd=c(3,1,1),cex=2)
+
+
+
 
 
 ##################################################################################
