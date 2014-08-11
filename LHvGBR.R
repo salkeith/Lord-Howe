@@ -667,7 +667,7 @@ hist(log(sitebysp[74:131,]),na.rm=T,main="One Tree",xlim=c(-6,0),breaks=10)
 hist(log(sitebysp[131:203]),na.rm=T,main="Lord Howe",xlim=c(-6,0),breaks=10)
 
 par(mfcol=c(1,1))
-plot(density(log(sitebysp[131:203]),bw=0.25),col=1,lty=1,xlim=c(-6,0),main="size intercept class")
+plot(density(log(sitebysp[131:203]),bw=0.25),col=1,lty=1,xlim=c(-6,0),main="size intercept class",xlab="Size class log(cm)")
 lines(density(log(sitebysp[1:73,]),bw=0.25),col=1,lty=1,lwd=3)
 lines(density(log(sitebysp[74:131,]),bw=0.25),col=1,lty=2) 
 legend("topleft",c("Lizard","One Tree","Lord Howe"),lty=c(1,2,1),lwd=c(3,1,1),cex=2)
