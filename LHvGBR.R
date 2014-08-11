@@ -110,15 +110,15 @@ MDS <- metaMDS(t(spbysite),trymax=50)
 plot(MDS)
 MDS$points
 
-par(mfcol=c(2,1))
+par(mfcol=c(1,1))
 # plot MDS with each island a different colour
-plot(MDS,display="sites",col="white",cex.lab=1,font.lab=2,main="MDS transects")
-points(MDS, display="sites",pch=20,col=1,select=island.short== "lizard")
-points(MDS, display="sites",pch=20,col=2,select=island.short== "one.tree")
-points(MDS, display="sites",pch=20,col=3,select=island.short== "lord.howe")
+plot(MDS,display="sites",col="white",cex.lab=2,cex.axis=1.5,font.lab=2)
+points(MDS, display="sites",pch=1,col=1,select=island.short== "lizard")
+points(MDS, display="sites",pch=19,col="grey",select=island.short== "one.tree")
+points(MDS, display="sites",pch=19,col=1,select=island.short== "lord.howe")
 # add to plot 95% confidence ellipses for each island
-ordiellipse(MDS,island.short,kind="sd",conf=0.90,lty=2)
-legend("topright",c("lizard","one tree","lord howe"),pch=20,col=c(1,2,3))
+ordiellipse(MDS,island.short,kind="sd",conf=0.95,lty=2)
+legend("topright",c("Lizard","One Tree","Lord Howe"),pch=c(1,19,19),col=c(1,"grey",1),cex=2.5)
 # plot MDS with each habitat a different colour
 plot(MDS,display="sites",col="white",cex.lab=1,font.lab=2,main="MDS transects")
 points(MDS, display="sites",pch=20,col=1,select=habitat.short== "lagoon")
@@ -129,15 +129,45 @@ ordiellipse(MDS,habitat.short,kind="sd",conf=0.90,lty=2)
 legend("topright",c("lagoon","crest"),pch=20,col=c(1,2))
 
 # isolate MDS axis scores for use in GLMM
-MDSax <- MDS$points
-MDSax1 <- MDSax[,1]
-MDSax2 <- MDSax[,2]
-
 MDSsp <- MDS$species
 MDSsp <- as.data.frame(MDSsp[,1:2])
-MDSsp <- cbind(rownames(MDSsp),MDSsp)
+MDSsp <- cbind(rownames(spbysite2),MDSsp)
 colnames(MDSsp) <- c("species","ax1","ax2")
 rownames(MDSsp) <- NULL
+
+
+##############################################################################################
+## TRY REMOVING OUTLIER site 140
+spbysite2 <- spbysite[,-140]
+island.short2 <- island.short[-140]
+region2 <- region[-140]
+habitat.short2 <- habitat.short[-140]
+MDS <- metaMDS(t(spbysite2),trymax=50)
+plot(MDS)
+par(mfcol=c(1,1))
+# plot MDS with each island a different colour
+plot(MDS,display="sites",col="white",cex.lab=2,cex.axis=1.5,font.lab=2)
+points(MDS, display="sites",pch=1,col=1,select=island.short2== "lizard")
+points(MDS, display="sites",pch=19,col="grey",select=island.short2== "one.tree")
+points(MDS, display="sites",pch=19,col=1,select=island.short2== "lord.howe")
+# add to plot 95% confidence ellipses for each island
+ordiellipse(MDS,island.short2,kind="sd",conf=0.95,lty=2)
+legend("topright",c("Lizard","One Tree","Lord Howe"),pch=c(1,19,19),col=c(1,"grey",1),cex=2.5)
+anosim(t(spbysite2),island.short2,permutations=1000,distance="bray")
+anosim(t(spbysite2),region2,permutations=1000,distance="bray")
+anosim(t(spbysite2),habitat.short2,permutations=1000,distance="bray")
+# ANOSIM between each island pair
+island.LizOT <- rep(c("lizard","one.tree"),c(73,58))
+anosim(t(spbysite2[,1:131]),island.LizOT,permutations=1000,distance="bray")
+island.LizLH <- rep(c("lizard","lord.howe"),c(73,71))
+anosim(t(spbysite2[,c(1:73,132:202)]),island.LizLH,permutations=1000,distance="bray")
+island.LHOT <- rep(c("one.tree","lord.howe"),c(58,71))
+anosim(t(spbysite2[,74:202]),island.LHOT,permutations=1000,distance="bray")
+
+rownames(spbysite2) <- rel.cover.mat[,1]
+##############################################################################################
+# doesn't affect ANOSIM or model result so leave in. Ellipses capture central region.
+##############################################################################################
 
 
 #############################################
@@ -148,6 +178,9 @@ rownames(MDSsp) <- NULL
 ## BASED ON NMDS AXIS SCORES
 
 traits <- read.csv("CoralTraitsAug2014SK.csv")
+# Dummy variables in data that I changed in csv file
+# water clarity: turbid = -1; both = 0; clear = 1
+# wave exposure: exposed = -1; broad = 0; protected = 1
 
 # Which traits do we want to include?
 colnames(traits)
@@ -213,7 +246,7 @@ summary(d)
 d <- d[,-6]
 
 # check higher order terms for traits
-for(i in 4:length(d)){
+for(i in 5:length(d)){
    par(mfcol=c(2,2))
    print(colnames(d)[i])
    lin <- lm(ax1~d[,i],data=d)
@@ -239,7 +272,7 @@ d <- d[-c(59,72,74,76,108,111,113,119),]
 # valley size still cubic
 
 # recheck regression diagnostics
-for(i in 4:length(d)){
+for(i in 5:length(d)){
    par(mfcol=c(2,2))
    print(colnames(d)[i])
    lin <- lm(ax1~d[,i],data=d)
@@ -601,6 +634,17 @@ for(i in 1:4){
 
 dev.off()
 
+
+#############################
+## BACKTRANSFORM
+
+tmean <- apply(sptr[,5:ncol(sptr)],2,function(x) mean(x,na.rm=T))
+tsd <- apply(sptr[,5:ncol(sptr)],2,function(x) sd(x,na.rm=T))
+
+# wave exposure
+we <- rep()
+x <- -1*tsd[6]
+x+tmean[6]
 
 
 ##################################################################################
