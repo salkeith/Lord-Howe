@@ -180,6 +180,15 @@ rownames(spbysite2) <- rel.cover.mat[,1]
 ##############################################################################################
 
 
+## TRY USING PCA
+pca <- princomp(sitebysp)
+pca$scores[,1]
+summary(pca)
+biplot(pca,xlabs=island.short)
+
+dca <- decorana(sitebysp)
+plot(dca)
+
 #############################################
 #############################################
 
@@ -674,7 +683,56 @@ legend("topleft",c("Lizard","One Tree","Lord Howe"),lty=c(1,2,1),lwd=c(3,1,1),ce
 
 
 
+############################################################
+############################################################
 
+## RELATIVE ABUNDANCE BAR CHARTS
+# SK 19/08/2014
+
+load("LongFormatCoverData.RData")
+head(cover.data)
+
+mean.rel <- aggregate(cover.relative~species+habitat+island,cover.data,mean)
+meansd.rel <- cbind(mean.rel,aggregate(cover.relative~species+habitat+island,cover.data,sd)[,4])
+head(meansd.rel)
+
+# subset each bar so can cbind into a matrix
+# http://stackoverflow.com/questions/18081102/r-bar-plot-with-two-groups-of-which-one-is-stacked
+lizl <- subset(meansd.rel,meansd.rel[,2]=="lagoon" & meansd.rel[,3]=="lizard")
+lizc <- subset(meansd.rel,meansd.rel[,2]=="crest" & meansd.rel[,3]=="lizard")
+otl <- subset(meansd.rel,meansd.rel[,2]=="lagoon" & meansd.rel[,3]=="one.tree")
+otc <- subset(meansd.rel,meansd.rel[,2]=="crest" & meansd.rel[,3]=="one.tree")
+lhl <- subset(meansd.rel,meansd.rel[,2]=="lagoon" & meansd.rel[,3]=="lord.howe")
+lhc <- subset(meansd.rel,meansd.rel[,2]=="crest" & meansd.rel[,3]=="lord.howe")
+# bind together columns of mean relative abundance, 
+
+# normalised by the total sum of the means so columns add up to 1
+mean.rel.ab <- cbind((lizl[,5])/(sum(lizl[,5])),(lizc[,5])/(sum(lizc[,5])),(otl[,5])/(sum(otl[,5])),
+                       (otc[,5])/(sum(otc[,5])),(lhl[,5])/(sum(lhl[,5])),(lhc[,5])/(sum(lhc[,5])))
+# sorted by relative abundance
+mean.rel.ab.sort <- cbind(sort((lizl[,5])/(sum(lizl[,5]))),sort((lizc[,5])/(sum(lizc[,5]))),sort((otl[,5])/(sum(otl[,5]))),
+                  sort((otc[,5])/(sum(otc[,5]))),sort((lhl[,5])/(sum(lhl[,5]))),sort((lhc[,5])/(sum(lhc[,5]))))
+mean.rel.ab.sort <- apply(mean.rel.ab,2,rev)
+
+# plot in groups: island by habitat. Unsorted, species in alphabetical order
+barplot(mean.rel.ab,space=c(.75,.25),names.arg=c("LizL","LizC","OTL","OTC","LHL","LHC"),
+        col=heat.colors(120))
+# plot in groups: island by habitat. Sorted by relative abundance
+barplot(mean.rel.ab,space=c(.75,.25),names.arg=c("LizL","LizC","OTL","OTC","LHL","LHC"),
+        col=heat.colors(120))
+## TOO MANY SPECIES FOR THESE GRAPHS TO BE USEFUL!
+
+# plot relative abundance distributions as density plots
+plot(density(log(mean.rel.ab[,1])),type="l",xlim=c(-9,0),lwd=1.5,main="Relative abundance distribution",
+     xlab="log(relative abundance)")
+for(i in c(3,5)){
+   lines(density(log(mean.rel.ab[,i])),col=(i/2)+0.5,lwd=1.5)
+}
+for(i in c(2,4,6)){
+   lines(density(log(mean.rel.ab[,i])),col=i/2,lty=2,lwd=1.5)
+}
+legend("topleft",c("LizL","LizC","OTL","OTC","LHL","LHC"),col=c(1,1,2,2,3,3),
+       lty=c(1,2,1,2,1,2),lwd=1.5)
 
 ##################################################################################
 ##################################################################################
