@@ -151,7 +151,7 @@ region <- rep(c("GBR","lord.howe","GBR","lord.howe"),c(72,36,36,18))
 empty.sp <- c()  # empty vector to record absent species 
 boot.anosim <- matrix(NA,bootstrap.n,6)
 for(z in 1:bootstrap.n){
-   if(z %in% seq(100,1000,100)) print(z)
+   if(z %in% seq(50,1000,50)) print(z)
    # remove species with no records (to make ANOSIM work)
    x <- subset(boot.mat[[z]],rowSums(boot.mat[[z]])>0)
    # record number of species absent in each data set
@@ -179,7 +179,7 @@ boot.mds.sp <- list()
 mds.stress <- c()  # record stress value for each MDS
 
 for(z in 1:bootstrap.n){
-   if(z %in% seq(100,1000,100)) print(z)
+   if(z %in% seq(50,1000,50)) print(z)
    x <- subset(boot.mat[[z]],rowSums(boot.mat[[z]])>0)
    x <- t(x)
    mds <- metaMDS(x,trymax=50)
@@ -193,6 +193,26 @@ save(boot.anisim,empty.sp,mds.stress,boot.mds.sites,boot.mds.sp,
         file="BootstrappedANOSIMandMDS.RData")
 
 
+par(mfcol=c(3,3))
+for(i in 10:12){
+   bms <- boot.mds.sites[[i]]
+   plot(bms,col="white",main="island")   
+   points(bms[which(island.short=="lizard"),],col=1)
+   points(bms[which(island.short=="one.tree"),],col=2)
+   points(bms[which(island.short=="lord.howe"),],col=3)
+}
+for(i in 10:12){
+   bms <- boot.mds.sites[[i]]
+   plot(bms,col="white",main="habitat")   
+   points(bms[which(habitat.short=="lagoon"),],col=1)
+   points(bms[which(habitat.short=="crest"),],col=2)
+}
+for(i in 10:12){
+   bms <- boot.mds.sites[[i]]
+   plot(bms,col="white",main="region")   
+   points(bms[which(region=="GBR"),],col=1)
+   points(bms[which(region=="lord.howe"),],col=2)
+}
 
 
 
