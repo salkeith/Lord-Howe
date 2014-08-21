@@ -734,6 +734,42 @@ for(i in c(2,4,6)){
 legend("topleft",c("LizL","LizC","OTL","OTC","LHL","LHC"),col=c(1,1,2,2,3,3),
        lty=c(1,2,1,2,1,2),lwd=1.5)
 
+# Plot brooders and spawners separately.
+# If hypothesis on establishment correct, brooders should have log normal size distribution,
+# spawners should be multi-modal?
+bs <- traits[,c(1,12)]
+mean.rel.ab <- as.data.frame(mean.rel.ab)
+mean.ab.sp <- cbind(lizl[,1],mean.rel.ab)
+colnames(mean.ab.sp)[1] <- "species"
+dab <- merge(mean.ab.sp,bs,by="species")
+
+
+par(mfcol=c(2,1))
+plot(density(log10(subset(dab,dab[,8]==1)[,2])),lty=1,main="spawner")
+for(i in c(4,6)){
+   lines(density(log10(subset(dab,dab[,8]==1)[,i])),lty=1,col=i/2,lwd=1.5)
+}
+for(i in c(3,5,7)){
+   lines(density(log10(subset(dab,dab[,8]==1)[,i])),lty=2,col=(i/2)-0.5,lwd=1.5)
+}
+
+plot(density(log10(subset(dab,dab[,8]==0)[,2])),lty=1,main="brooder",xlim=c(-4,-0.2))
+for(i in c(4,6)){
+   lines(density(log10(subset(dab,dab[,8]==0)[,i])),lty=1,col=i/2,lwd=1.5)
+}
+for(i in c(3,5,7)){
+   lines(density(log10(subset(dab,dab[,8]==0)[,i])),lty=2,col=(i/2)-0.5,lwd=1.5)
+}
+
+## OPPOSITE OF WHAT I EXPECTED!
+# Using the mean of each species is not capturing it well & doesnt really make sense!
+# Instead makes more sense to pool individuals across species.
+# Go back to raw data.
+
+
+
+
+
 ##################################################################################
 ##################################################################################
 ## EXTRA CRAP THAT TURNED OUT NOT TO BE SO HELPFUL
