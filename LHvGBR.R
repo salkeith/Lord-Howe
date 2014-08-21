@@ -46,7 +46,7 @@ table(d3[,2])
 # add other columns for site data
 island <- rep(c("lizard","one.tree","lord.howe"),c(120*73,120*58,120*72))
 habitat <- rep(c("lagoon","crest","lagoon","crest","crest","lagoon"),c(120*36,120*37,120*36,120*22,120*36,120*36))
-site <- rep(c("horseshoe","reef","north.of.trimodal","lizard.head","north.point","trimodal","second.lagoon",
+site <- rep(c("horseshoe","lagoon.reef","north.of.trimodal","lizard.head","north.point","trimodal","second.lagoon",
               "shark.alley","the.gutter","long.bank","second.lagoon","third.lagoon","blackburn.island",
               "jetty","north.bay","comets.hole","north.bay","sylphs.hole"),
               c(120*12,120*12,120*12,120*12,120*13,120*12,120*12,120*12,120*12,120*8,120*6,120*8,
