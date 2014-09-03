@@ -22,6 +22,7 @@ library(visreg)
 library(reshape)
 library(MuMIn)
 library(effects)
+library(MASS)
 
 ###################################################
 ###################################################
@@ -137,6 +138,40 @@ dim(boot.mat[[1]])
 save(boot.mat,boot.join,boot.d,boot.id,file="BootstrappedData.RData")
 
 
+#######################################################
+#######################################################
+
+## GET SIMILARITY MEASURES FOR BOOTSTRAPPED DATA
+## AND THEN USE THE MEAN SIMILARITY BETWEEN EACH SITE
+
+load("BootstrappedData.RData")
+
+boot.dist <- list()
+bootstrap.n <- 1000
+
+for(z in 1:bootstrap.n){
+   boot.dist[[z]] <- vegdist(t(boot.mat[[z]]),method="jaccard")
+}
+
+boot.dist.mat <- sapply(boot.dist,as.numeric)
+boot.dist.rowmean <- rowMeans(boot.dist.mat)
+boot.dist.mean <- as.dist(boot.dist.rowmean)
+
+MDS <- monoMDS(boot.dist.mean,maxit=1,k=2)
+par(mfcol=c(2,1))
+stressplot(MDS)
+plot(MDS)
+
+par(mfcol=c(1,1))
+# plot MDS with each island a different colour
+plot(MDS,display="sites",col="white",cex.lab=2,cex.axis=1.5,font.lab=2,ylim=c(-1,1),xlim=c(-1,1))
+points(MDS, display="sites",pch=1,col=1,select=is== "lizard")
+points(MDS, display="sites",pch=19,col="grey",select=is== "one.tree")
+points(MDS, display="sites",pch=19,col=1,select=is== "lord.howe")
+# add to plot 95% confidence ellipses for each island
+ordiellipse(MDS,is,kind="sd",conf=0.95,lty=2)
+legend("topright",c("Lizard","One Tree","Lord Howe"),pch=c(1,19,19),col=c(1,"grey",1),cex=2.5)
+
 
 #######################################################
 #######################################################
@@ -171,6 +206,8 @@ for(z in 1:bootstrap.n){
 # check the data look right
 head(boot.anosim)
 summary(empty.sp)
+colnames(boot.anosim) <- c("island.R","island.p","region.R","region.p","habitat.R","habitat.p")
+colMeans(boot.anosim)  # mean values across all bootstrapped data sets
 
 # might need to use mean rank of score rather actual score
 # because axes might look totally different for each MDS
@@ -189,31 +226,368 @@ for(z in 1:bootstrap.n){
 }
 
 
-save(boot.anisim,empty.sp,mds.stress,boot.mds.sites,boot.mds.sp,
+save(boot.anosim,empty.sp,mds.stress,boot.mds.sites,boot.mds.sp,
         file="BootstrappedANOSIMandMDS.RData")
 
 
 par(mfcol=c(3,3))
-for(i in 10:12){
+for(i in 110:112){
    bms <- boot.mds.sites[[i]]
    plot(bms,col="white",main="island")   
    points(bms[which(island.short=="lizard"),],col=1)
    points(bms[which(island.short=="one.tree"),],col=2)
    points(bms[which(island.short=="lord.howe"),],col=3)
 }
-for(i in 10:12){
+for(i in 110:112){
    bms <- boot.mds.sites[[i]]
    plot(bms,col="white",main="habitat")   
    points(bms[which(habitat.short=="lagoon"),],col=1)
    points(bms[which(habitat.short=="crest"),],col=2)
 }
-for(i in 10:12){
+for(i in 110:112){
    bms <- boot.mds.sites[[i]]
    plot(bms,col="white",main="region")   
    points(bms[which(region=="GBR"),],col=1)
    points(bms[which(region=="lord.howe"),],col=2)
 }
 
+
+
+#########################################################
+## SK 25/08/2014
+## USE LAGOON SITES ONLY
+
+load("WideFormatRelCoverData.RData")
+
+spbysite <- rel.cover.mat[,-1]
+sitebysp <- t(spbysite)
+colnames(sitebysp) <- rel.cover.mat[,1]
+island.short <- rep(c("lizard","one.tree","lord.howe"),c(73,58,72))
+region <- rep(c("GBR","lord.howe"),c(73+58,72))
+habitat.short <- rep(c("lagoon","crest","lagoon","crest","crest","lagoon"),c(36,37,36,22,36,36))
+
+sbsp <- sitebysp[which(habitat.short=="lagoon"),]
+is <- island.short[which(habitat.short=="lagoon")]
+r <- region[which(habitat.short=="lagoon")]
+anosim(sbsp,is,permutations=1000,distance="bray")
+anosim(sbsp,r,permutations=1000,distance="bray")
+# ANOSIM between each island pair
+anosim(sbsp[which(is=="lizard"|is=="one.tree"),],is[which(is=="lizard"|is=="one.tree")],permutations=1000,distance="bray")
+anosim(sbsp[which(is=="lizard"|is=="lord.howe"),],is[which(is=="lizard"|is=="lord.howe")],permutations=1000,distance="bray")
+anosim(sbsp[which(is=="lord.howe"|is=="one.tree"),],is[which(is=="lord.howe"|is=="one.tree")],permutations=1000,distance="bray")
+
+
+MDS <- metaMDS(sbsp,trymax=50)
+plot(MDS)
+
+par(mfcol=c(1,1))
+# plot MDS with each island a different colour
+plot(MDS,display="sites",col="white",cex.lab=2,cex.axis=1.5,font.lab=2,ylim=c(-1,1),xlim=c(-1,1))
+points(MDS, display="sites",pch=1,col=1,select=is== "lizard")
+points(MDS, display="sites",pch=19,col="grey",select=is== "one.tree")
+points(MDS, display="sites",pch=19,col=1,select=is== "lord.howe")
+# add to plot 95% confidence ellipses for each island
+ordiellipse(MDS,is,kind="sd",conf=0.95,lty=2)
+legend("topright",c("Lizard","One Tree","Lord Howe"),pch=c(1,19,19),col=c(1,"grey",1),cex=2.5)
+
+# isolate MDS axis scores for use in GLMM
+MDSsp <- MDS$species
+MDSsp <- as.data.frame(MDSsp[,1:2])
+MDSsp <- cbind(colnames(sbsp),MDSsp)
+colnames(MDSsp) <- c("species","ax1","ax2")
+rownames(MDSsp) <- NULL
+# remove all the species not present in lagoon
+MDSsp <- MDSsp[-c(6,7,10,21,27,31,44,52,54,55,66,89,92,96,102,104,117),]
+
+traits <- read.csv("Traits_LHI_AB26Aug14.csv")
+# Dummy variables in data that I changed in csv file
+# water clarity: turbid = -1; both = 0; clear = 1
+# wave exposure: exposed = -1; broad = 0; protected = 1
+# Which traits do we want to include?
+colnames(traits)
+# convert all columns to numeric format
+for(i in 2:ncol(traits)){
+   traits[,i] <- as.numeric(traits[,i])
+}
+str(traits)
+# merge species traits with NMDS axis scores
+sptr <- merge(MDSsp,traits,by="species",all.x=T)
+save(sptr,file="SpeciesAxisScoresTraitsLagoon.RData")
+
+#### ACROPORA CUNEATA AND A. PALIFERA ARE ISOPORA
+
+
+####################################################
+####################################################
+
+## REGRESSION MODEL
+## HOW WELL CAN TRAITS PREDICT THE NMDS AXIS SCORE?
+
+####################################################
+####################################################
+
+load("SpeciesAxisScoresTraitsLagoon.RData")
+
+###################################################
+## REGRESSION DIAGNOSTICS
+
+# normalize trait data (mean = 0, sd = 1)
+t.norm <- scale(sptr[,4:ncol(sptr)])
+
+# visualise distribution of values for each normalized variable
+par(mfcol=c(3,3))
+for(z in 1:9){
+   hist(t.norm[,z], main = colnames(t.norm)[z])
+}
+par(mfcol=c(3,2))
+for(z in 10:ncol(t.norm)){
+   hist(t.norm[,z], main = colnames(t.norm)[z])
+}
+
+# check collinearity of traits
+pairs(t.norm)
+multcol <- cor(t.norm,use="complete.obs")
+multcol< (-0.6) | multcol>0.6
+# CORRELATIONS:
+# depth range & lower depth
+# larval development mode & development rate
+# ACTION:
+# remove lower depth because less information than depth range
+# remove development rate
+t.norm <- t.norm[,-c(4,10)]
+
+# put data together into one data frame ready for regression
+d <- cbind(sptr[,1:3],t.norm)
+colnames(d) <- c(colnames(d)[1:3],"colony.size","valley.size","genus.age","upp.depth","depth.range",
+                 "water.clarity","wave.exposure","larval.mode","sex","zoox")
+summary(d)
+
+# check quadratics for traits (if delta AICc >3, use quadratic)
+for(i in 4:length(d)){
+   par(mfcol=c(2,2))
+   print(colnames(d)[i])
+   lin <- lm(ax1~d[,i],data=d)
+   plot(lin)
+   quad <- lm(ax1~d[,i]+I(d[,i]^2),data=d)  
+   print(AICc(lin,quad))
+}
+
+# remove rows with NAs to ensure models all use same underlying data (no na.omit)
+d <- d[-c(50,93,96),]
+
+# recheck regression diagnostics
+for(i in 4:length(d)){
+   par(mfcol=c(2,2))
+   print(colnames(d)[i])
+   lin <- lm(ax1~d[,i],data=d)
+   plot(lin)
+}
+
+# save file so don't have to repeat steps above
+save(d,file="DataForRegressionLHIlagoon.RData")
+
+
+
+###################################################
+###################################################
+## LINEAR REGRESSION AXIS 1
+
+load(d,file="DataForRegressionLHI.RData")
+
+# Full model including interactions that make biological sense and genus as a random effect
+mod <- lm(ax1~colony.size+valley.size+upp.depth+depth.range+wave.exposure+water.clarity+genus.age+sex+
+               larval.mode+zoox+upp.depth*depth.range+wave.exposure*water.clarity+larval.mode*sex,
+               data=d,na.action=na.fail)
+summary(mod)
+# remove non-significant interactions
+mod <- lm(ax1~colony.size+valley.size+upp.depth+depth.range+wave.exposure+water.clarity+genus.age+sex+
+               larval.mode+zoox+upp.depth*depth.range,data=d,na.action=na.fail)
+summary(mod)
+
+# take a look at the partial coefficients
+par(mfcol=c(3,3))
+visreg(mod,partial=F)
+
+
+
+#############################################
+# MODEL SELECTION AND AVERAGING
+# model selection by delta < 3 (Bolker 2009) with polynomials
+dmod <- dredge(mod)
+mod.sel <- summary(model.avg(get.models(subset(dmod,delta < 3))))
+mod.sel
+
+mod.best <- lm(ax1~larval.mode+genus.age,data=d,na.action=na.fail)
+summary(mod.best)
+
+save(mod.sel,mod.best,file="ModelAveragedandBestModResultLagoon.RData")
+
+write.csv(coefTable(mod.sel),"ModelAveragedCoefsLagoon.csv")
+
+#############################################
+# MODEL-AVERAGED CONFIDENCE INTERVALS
+cimod<- confint(mod.sel)
+# full model-averaged coefficients not needed because all models in the set contain
+# both interaction terms and main effects, or cubic term
+comod <- coef(mod.sel)
+CImod <- cbind(comod,cimod) 
+CImod
+# return variables that do not have coefficients that overlap zero
+# (i.e., those that are significant)
+# N.B. doesn't apply to interactions or cubic 
+CImod[!(CImod[,2]<0 & CImod[,3]>0),]
+
+write.csv(CImod,"ModelAveragedCoefs95CILagoon.csv")
+
+
+#######################################################
+# PARTIAL COEFFICIENT PLOTS for significant variables 
+# manual plotting required, visreg doesn't work on model-averged object
+
+pdf("PartialCoefsLordHoweTraitsLagoonBest.pdf")
+
+par(mfrow=c(2,2))
+
+# LARVAL MODE
+x <- seq(min(d$larval.mode),max(d$larval.mode),length=100)
+larval.pred <- with(d,(predict(mod.best,interval="confidence",newdata=data.frame(larval.mode=x,
+                 upp.depth=mean(upp.depth),water.clarity=mean(water.clarity)))))
+plot(ax1~larval.mode,data=d,col="lightgray",pch=16,ylab="NMDS Axis 1",
+     xlab="Larval mode",cex.lab=1.5)
+points(larval.pred[,1]~x,type="l",col=1,lwd=2)
+lines(larval.pred[,2]~x,lty=2,type="l")
+lines(larval.pred[,3]~x,lty=2,type="l")
+
+# UPPER DEPTH
+x <- seq(min(d$upp.depth),max(d$upp.depth),length=100)
+upp.pred <- with(d,(predict(mod.best,interval="confidence",newdata=data.frame(upp.depth=x,
+                  larval.mode=mean(larval.mode),water.clarity=mean(water.clarity)))))
+plot(ax1~upp.depth,data=d,col="lightgray",pch=20,ylab="NMDS Axis 1",
+     xlab="Upper depth",cex.lab=1.5)
+points(upp.pred[,1]~x,type="l",col=1,lwd=2)
+lines(upp.pred[,2]~x,lty=2,type="l")
+lines(upp.pred[,3]~x,lty=2,type="l")
+
+# WATER CLARITY
+x <- seq(min(d$water.clarity),max(d$water.clarity),length=100)
+wc.pred <- with(d,(predict(mod.best,interval="confidence",newdata=data.frame(water.clarity=x,
+                  larval.mode=mean(larval.mode),upp.depth=mean(upp.depth)))))
+plot(ax1~water.clarity,data=d,col="lightgray",pch=20,ylab="NMDS Axis 1",
+     xlab="Water clarity",cex.lab=1.5)
+points(wc.pred[,1]~x,type="l",col=1,lwd=2)
+lines(wc.pred[,2]~x,lty=2,type="l")
+lines(wc.pred[,3]~x,lty=2,type="l")
+
+dev.off()
+
+
+
+###################################################
+###################################################
+## LINEAR REGRESSION AXIS 2
+
+load(d,file="DataForRegressionLHILagoon.RData")
+
+# check quadratics for traits
+for(i in 5:length(d)){
+   par(mfcol=c(2,2))
+   print(colnames(d)[i])
+   lin <- lm(ax2~d[,i],data=d)
+   plot(lin)
+   quad <- lm(ax2~d[,i]+I(d[,i]^2),data=d)  
+   print(AICc(lin,quad))
+}
+
+# Full model including interactions that make biological sense and genus as a random effect
+mod <- lmer(ax2~valley.size+upp.depth+depth.range+wave.exposure+water.clarity+genus.age+sex+
+               larval.mode+zoox+upp.depth*depth.range+wave.exposure*water.clarity+larval.mode*sex+
+               (1|genus),data=d,na.action=na.fail)
+summary(mod)
+dotplot(ranef(mod, postVar=TRUE))
+# mixed model not required - very low variance accounted for and overlapping confidence intervals in dotplot
+mod <- lm(ax2~valley.size+upp.depth+depth.range+wave.exposure+water.clarity+genus.age+sex+
+             larval.mode+zoox+upp.depth*depth.range+wave.exposure*water.clarity+larval.mode*sex,data=d,na.action=na.fail)
+summary(mod)
+# remove non-significant interactions
+mod <- lm(ax2~valley.size+upp.depth+depth.range+wave.exposure+water.clarity+genus.age+sex+
+             larval.mode+zoox,data=d,na.action=na.fail)
+summary(mod)
+
+# take a look at the partial coefficients
+par(mfcol=c(3,3))
+visreg(mod,partial=F)
+
+
+
+#############################################
+# MODEL SELECTION AND AVERAGING
+# model selection by delta < 3 (Bolker 2009) with polynomials
+dmod <- dredge(mod)
+mod.sel <- summary(model.avg(get.models(subset(dmod,delta < 3))))
+mod.sel
+
+mod.best <- lm(ax2~upp.depth+wave.exposure+genus.age,data=d,na.action=na.fail)
+summary(mod.best)
+
+save(mod.sel,mod.best,file="ModelAveragedandBestModResultLagoon2.RData")
+
+write.csv(coefTable(mod.sel),"ModelAveragedCoefsLagoon2.csv")
+
+#############################################
+# MODEL-AVERAGED CONFIDENCE INTERVALS
+cimod<- confint(mod.sel)
+# full model-averaged coefficients not needed because all models in the set contain
+# both interaction terms and main effects, or cubic term
+comod <- coef(mod.sel)
+CImod <- cbind(comod,cimod) 
+CImod
+# return variables that do not have coefficients that overlap zero
+# (i.e., those that are significant)
+# N.B. doesn't apply to interactions or cubic 
+CImod[!(CImod[,2]<0 & CImod[,3]>0),]
+
+write.csv(CImod,"ModelAveragedCoefs95CILagoon2.csv")
+
+
+#######################################################
+# PARTIAL COEFFICIENT PLOTS for significant variables 
+# manual plotting required, visreg doesn't work on model-averged object
+
+pdf("PartialCoefsLordHoweTraitsLagoonBest2.pdf")
+
+par(mfrow=c(2,2))
+
+# GENUS AGE
+x <- seq(min(d$genus.age),max(d$genus.age),length=100)
+ga.pred <- with(d,(predict(mod.best,interval="confidence",newdata=data.frame(genus.age=x,
+                    upp.depth=mean(upp.depth),wave.exposure=mean(wave.exposure)))))
+plot(ax1~genus.age,data=d,col="lightgray",pch=16,ylab="NMDS Axis 2",
+     xlab="Genus age",cex.lab=1.5)
+points(ga.pred[,1]~x,type="l",col=1,lwd=2)
+lines(ga.pred[,2]~x,lty=2,type="l")
+lines(ga.pred[,3]~x,lty=2,type="l")
+
+# UPPER DEPTH
+x <- seq(min(d$upp.depth),max(d$upp.depth),length=100)
+ud.pred <- with(d,(predict(mod.best,interval="confidence",newdata=data.frame(upp.depth=x,
+                      genus.age=mean(genus.age),wave.exposure=mean(wave.exposure)))))
+plot(ax1~upp.depth,data=d,col="lightgray",pch=16,ylab="NMDS Axis 2",
+     xlab="Upper depth",cex.lab=1.5)
+points(ud.pred[,1]~x,type="l",col=1,lwd=2)
+lines(ud.pred[,2]~x,lty=2,type="l")
+lines(ud.pred[,3]~x,lty=2,type="l")
+
+# WAVE EXPOSURE
+x <- seq(min(d$wave.exposure),max(d$wave.exposure),length=100)
+we.pred <- with(d,(predict(mod.best,interval="confidence",newdata=data.frame(wave.exposure=x,
+                       upp.depth=mean(upp.depth),genus.age=mean(genus.age)))))
+plot(ax1~wave.exposure,data=d,col="lightgray",pch=16,ylab="NMDS Axis 2",
+     xlab="Wave exposure",cex.lab=1.5)
+points(we.pred[,1]~x,type="l",col=1,lwd=2)
+lines(we.pred[,2]~x,lty=2,type="l")
+lines(we.pred[,3]~x,lty=2,type="l")
+
+dev.off()
 
 
 
