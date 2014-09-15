@@ -73,6 +73,11 @@ for(i in 1:length(unique(transect))){
 cover.data <- cbind(cover.data,cover.relative)
 rel.cover.mat <- cast(cover.data,species~transect,value="cover.relative")
 
+levels(rel.cover.mat[,1])[9] <- "Isopora cuneata"
+levels(rel.cover.mat[,1])[28] <- "Isopora palifera"
+levels(cover.data$species)[9] <- "Isopora cuneata"
+levels(cover.data$species)[28] <- "Isopora palifera"
+
 save(rel.cover.mat,file="WideFormatRelCoverData.RData")
 save(cover.data,file="LongFormatCoverData.RData")
 
@@ -89,7 +94,7 @@ load("WideFormatRelCoverData.RData")
 head(cover.data)
 
 # merge Porites annae & P. rus because Id issues
-Porites.massive <- rel.cover.mat[105,]+rel.cover.mat[113,]
+Porites.massive <- rel.cover.mat[105,2:nrow(rel.cover.mat)] + rel.cover.mat[113,2:nrow(rel.cover.mat)]
 # shuffle rows so still alphabetical
 rel.cover.mat[113,] <- rel.cover.mat[112,]
 rel.cover.mat[112,] <- Porites.massive
@@ -97,9 +102,7 @@ rel.cover.mat[112,] <- Porites.massive
 rel.cover.mat[,1] <- factor(rel.cover.mat[,1], levels=c(levels(rel.cover.mat[,1]), "Porites massive"))
 rel.cover.mat[112,1] <- "Porites massive"
 rel.cover.mat <- rel.cover.mat[-105,]
-# rename the two Acroporas that have been reclassified
-levels(rel.cover.mat[,1])[9] <- "Isopora cuneata"
-levels(rel.cover.mat[,1])[28] <- "Isopora palifera"
+
 
 sitebysp <- t(rel.cover.mat[,-1])
 colnames(sitebysp) <- rel.cover.mat[,1]
@@ -220,7 +223,8 @@ load("SpeciesAxisScoresTraits.RData")
 ## REGRESSION DIAGNOSTICS
 
 # normalize trait data (mean = 0, sd = 1)
-t.norm <- scale(sptr[,5:ncol(sptr)])
+t.norm <- scale(sptr[,5:10])
+t.norm <- cbind(t.norm,sptr[,11:16])
 
 # visualise distribution of values for each normalized variable
 par(mfcol=c(3,3))
@@ -260,27 +264,10 @@ for(i in 5:length(d)){
    print(AICc(lin,quad))
 }
 
-# valley size is best as quadratic
-
-# Regression diagnostics show approximately normal distribution of residuals
-# row 44 is a strong outlier - sqrt(standardised residuals) >3
-d[44,]  # large axis one score
-# remove it for now but note that this may skew result!
-d <- d[-44,]
+# valley size as quadratic
 
 # remove rows with NAs to ensure models all use same underlying data (no na.omit)
-d <- d[-c(57,105,108),]
-
-# with outlier removed, upper depth can now be linear
-# valley size still cubic
-
-# recheck regression diagnostics
-for(i in 5:length(d)){
-   par(mfcol=c(2,2))
-   print(colnames(d)[i])
-   lin <- lm(ax1~d[,i],data=d)
-   plot(lin)
-}
+d <- d[-c(58,108,111),]
 
 # looks good, ready to go
 # save file so don't have to repeat steps above
@@ -301,11 +288,11 @@ mod <- lmer(ax1~valley.size+I(valley.size^2)+upp.depth+depth.range+wave.exposure
               larval.mode+zoox+upp.depth*depth.range+wave.exposure*water.clarity+larval.mode*sex+
               (1|genus),data=d,na.action=na.fail)
 summary(mod)
-dotplot(ranef(mod, postVar=TRUE))
+dotplot(ranef(mod, condVar=TRUE))
 # Variance partition coefficient 
 # VPC = variance for random effect/(variance for random effect + 3.29)
 # The 3.29 is because it uses a binomial distribution
-tax <- 0.03/(0.03+3.29)
+tax <- 0.008/(0.008+3.29)
 tax
 # mixed model not required - very low variance accounted for and overlapping confidence intervals in dotplot
 
@@ -392,11 +379,14 @@ for(i in 5:length(d)){
    print(AICc(lin,quad))
 }
 
-# wave exposure is best as quadratic
+# remove wave exposure and water clarity because they are based
+# on the habitat a coral is found in and therefore would be circular
+
+d2 <- d[,-c(10,11)]
 
 # looks good, ready to go
 # save file so don't have to repeat steps above
-save(d,file="DataForRegressionLHIAx2.RData")
+save(d2,file="DataForRegressionLHIAx2.RData")
 
 
 ###################################################
@@ -405,30 +395,30 @@ save(d,file="DataForRegressionLHIAx2.RData")
 load("DataForRegressionLHIAx2.RData")
 
 # Full model, include genus as a fixed effect
-mod <- lm(ax2~genus+valley.size+upp.depth+depth.range+wave.exposure+I(wave.exposure^2)+water.clarity+genus.age+sex+
-             larval.mode+zoox+upp.depth*depth.range+wave.exposure*water.clarity+larval.mode*sex,data=d,na.action=na.fail)
+mod <- lm(ax2~genus+valley.size+upp.depth+depth.range+genus.age+sex+
+             larval.mode+zoox+upp.depth*depth.range+larval.mode*sex,data=d2,na.action=na.fail)
 summary(mod)
 # Full model including interactions that make biological sense and genus as a random effect
-mod <- lmer(ax2~genus+valley.size+upp.depth+depth.range+wave.exposure+I(wave.exposure^2)+water.clarity+genus.age+sex+
-               larval.mode+zoox+upp.depth*depth.range+wave.exposure*water.clarity+larval.mode*sex+
-               (1|genus),data=d,na.action=na.fail)
+mod <- lmer(ax2~valley.size+upp.depth+depth.range+genus.age+sex+
+               larval.mode+zoox+upp.depth*depth.range+larval.mode*sex+
+               (1|genus),data=d2,na.action=na.fail)
 summary(mod)
 dotplot(ranef(mod, condVar=TRUE))
 # Variance partition coefficient 
 # VPC = variance for random effect/(variance for random effect + 3.29)
 # The 3.29 is because it uses a binomial distribution
-tax <- 0.23/(0.23+3.29)
+tax <- 0.007/(0.007+3.29)
 tax
 # mixed model not required - very low variance accounted for and overlapping confidence intervals in dotplot
 
 # Full model, no genus
-mod <- lm(ax2~valley.size+upp.depth+depth.range+wave.exposure+I(wave.exposure^2)+water.clarity+genus.age+sex+
-             larval.mode+zoox+upp.depth*depth.range+wave.exposure*water.clarity+larval.mode*sex,data=d,na.action=na.fail)
+mod <- lm(ax2~valley.size+upp.depth+depth.range+genus.age+sex+
+             larval.mode+zoox+upp.depth*depth.range+larval.mode*sex,data=d2,na.action=na.fail)
 summary(mod)
 
 # remove non-significant interactions and higher order terms
-mod <- lm(ax2~valley.size+upp.depth+depth.range+wave.exposure+I(wave.exposure^2)+water.clarity+
-             genus.age+sex+larval.mode+zoox,data=d,na.action=na.fail)
+mod <- lm(ax2~valley.size+upp.depth+depth.range+
+             genus.age+sex+larval.mode+zoox,data=d2,na.action=na.fail)
 summary(mod)
 
 # take a look at the partial coefficients
@@ -438,11 +428,8 @@ visreg(mod,partial=F)
 
 #############################################
 # MODEL SELECTION AND AVERAGING
-# expression so that quadratic term cannot be included unless linear term present
-# and interaction terms cannot be included without the main effects
-msubset <- expression(c(wave.exposure|!`I(wave.exposure^2)`))
 # model selection by delta < 3 (Bolker 2009) with polynomials
-dmod <- dredge(mod,subset=msubset)
+dmod <- dredge(mod)
 mod.sel <- summary(model.avg(get.models(subset(dmod,delta < 3))))
 mod.sel
 
@@ -471,9 +458,10 @@ write.csv(CImod,"ModelAveragedCoefs95CIAx2.csv")
 
 # PLOT INTERACTION BETWEEN DEPTH VARIABLES
 # N.B. the function above doesnt work with model averaged result
-best.mod <- lm(ax2~wave.exposure+I(wave.exposure^2)+genus.age,data=d,na.action=na.fail)
+best.mod <- lm(ax2~genus.age+sex,data=d2,na.action=na.fail)
 # plot all partial coefficients on the same screen - cool :)
 z <- allEffects(mod=best.mod,default.levels=4)
+par(mfrow=c(2,2))
 pdf("AllEffectsBestModelAx2.pdf")
 plot(z,rug=F)
 dev.off()
@@ -501,15 +489,17 @@ y <- read.csv("LIT_Keithetal_2014.csv")
 head(y)
 
 # use tidyr to put all intercepts into one column
-y2 <- gather(y,colony,intercept,intercept_1:intercept_18)
+y2 <- gather(y,key=colony,value=intercept,intercept_1:intercept_18)
 # merge with traits so we know if species are brooders or spawners
 load("SpeciesAxisScoresTraits.RData")
-bs <- sptr[,c(1,13)]
-colnames(bs) <- c("species","spawn")
+bs <- sptr[,c(1,2,13)]
+colnames(bs) <- c("species","genus","spawn")
+
 y3 <- merge(y2,bs,by="species")
-y3 <- y3[,c(1,4,9,10)]
+y3 <- y3[,c(1,4,9,10,11)]
 # remove NAs using dplyr package
-y4 <- filter(y3,intercept>0)
+y4 <- filter(y3,value>0)
+colnames(y4) <- c(colnames(y4)[1:2],"intercept",colnames(y4)[4:5])
 
 # remove extra data frames
 rm(y,y2,y3)
@@ -520,20 +510,31 @@ y.ot <- filter(y4,Reef=="One Tree Island")
 y.lh <- filter(y4,Reef=="Lord Howe Island")
 
 # Plot log size distributions for each island and brooder/spawner
-plot(density(log((filter(y.liz,spawn==1))$intercept)),ylim=c(0,1),main="Brooder & Spawner Size Distribution",xlab="log(Size distribution)")
-lines(density(log((filter(y.liz,spawn==0))$intercept)),lty=2)
-lines(density(log((filter(y.ot,spawn==1))$intercept)),lty=1,col=3)
-lines(density(log((filter(y.ot,spawn==0))$intercept)),lty=2,col=3)
-lines(density(log((filter(y.lh,spawn==1))$intercept)),lty=1,col=4)
-lines(density(log((filter(y.lh,spawn==0))$intercept)),lty=2,col=4)
+bandwidth <- 0.175
+plot(density(log((filter(y.liz,spawn==1))$intercept),bw=bandwidth),ylim=c(0,1),main="Brooder & Spawner Size Distribution",xlab="log(Size distribution)")
+lines(density(log((filter(y.liz,spawn==0))$intercept),bw=bandwidth),lty=2)
+lines(density(log((filter(y.ot,spawn==1))$intercept),bw=bandwidth),lty=1,col=3)
+lines(density(log((filter(y.ot,spawn==0))$intercept),bw=bandwidth),lty=2,col=3)
+lines(density(log((filter(y.lh,spawn==1))$intercept),bw=bandwidth),lty=1,col=4)
+lines(density(log((filter(y.lh,spawn==0))$intercept),bw=bandwidth),lty=2,col=4)
 legend("topright",c("Lizard S","Lizard B","One Tree S","One Tree B","Lord Howe S","Lord Howe B"),lty=c(1,2,1,2,1,2),col=c(1,1,3,3,4,4))
 
 # Plot size distributions (without logging) for each island and brooder/spawner
-plot(density((filter(y.liz,spawn==1))$intercept),ylim=c(0,0.1))
-lines(density((filter(y.liz,spawn==0))$intercept),lty=2)
-lines(density((filter(y.ot,spawn==1))$intercept),lty=1,col=3)
-lines(density((filter(y.ot,spawn==0))$intercept),lty=2,col=3)
-lines(density((filter(y.lh,spawn==1))$intercept),lty=1,col=4)
-lines(density((filter(y.lh,spawn==0))$intercept),lty=2,col=4)
+plot(density((filter(y.liz,spawn==1))$intercept,bw=2),ylim=c(0,0.08),xlim=c(0,200))
+lines(density((filter(y.liz,spawn==0))$intercept,bw=2),lty=2)
+lines(density((filter(y.ot,spawn==1))$intercept,bw=2),lty=1,col=3)
+lines(density((filter(y.ot,spawn==0))$intercept,bw=2),lty=2,col=3)
+lines(density((filter(y.lh,spawn==1))$intercept,bw=2),lty=1,col=4)
+lines(density((filter(y.lh,spawn==0))$intercept,bw=2),lty=2,col=4)
 legend("topright",c("Lizard S","Lizard B","One Tree S","One Tree B","Lord Howe S","Lord Howe B"),lty=c(1,2,1,2,1,2),col=c(1,1,3,3,4,4))
+
+
+plot(density(log((filter(y.liz,spawn==1,genus=="Pocillopora"))$intercept)),ylim=c(0,2),main="Brooder & Spawner Size Distribution",xlab="log(Size distribution)")
+lines(density(log((filter(y.liz,spawn==0,genus=="Pocillopora"))$intercept)),lty=2)
+lines(density(log((filter(y.ot,spawn==1,genus=="Pocillopora"))$intercept),bw=0.15),lty=1,col=3)
+lines(density(log((filter(y.ot,spawn==0,genus=="Pocillopora"))$intercept)),lty=2,col=3)
+lines(density(log((filter(y.lh,spawn==1,genus=="Pocillopora"))$intercept)),lty=1,col=4)
+lines(density(log((filter(y.lh,spawn==0,genus=="Pocillopora"))$intercept)),lty=2,col=4)
+legend("topright",c("Lizard S","Lizard B","One Tree S","One Tree B","Lord Howe S","Lord Howe B"),lty=c(1,2,1,2,1,2),col=c(1,1,3,3,4,4))
+
 
