@@ -538,3 +538,84 @@ lines(density(log((filter(y.lh,spawn==0,genus=="Pocillopora"))$intercept)),lty=2
 legend("topright",c("Lizard S","Lizard B","One Tree S","One Tree B","Lord Howe S","Lord Howe B"),lty=c(1,2,1,2,1,2),col=c(1,1,3,3,4,4))
 
 
+
+
+
+####################################################
+
+## SK 24/09/2014
+## CREATE STAR PLOTS OF MOST ABUNDANT SPECIES
+
+####################################################
+
+# uses a base function in R
+
+load("WideFormatRelCoverData.RData")
+rel.cover.mat[1:10,1:10]
+island <- rep(c("lizard","one.tree","lord.howe"),c(73,58,72))
+habitat <- rep(c("lagoon","crest","lagoon","crest","crest","lagoon"),c(36,37,36,22,36,36))
+
+liz.mean.rel.ab <- rowMeans(rel.cover.mat[,2:74])
+ot.mean.rel.ab <- rowMeans(rel.cover.mat[,75:132])
+lh.mean.rel.ab <- rowMeans(rel.cover.mat[,133:204])
+dstar <- rbind(liz.mean.rel.ab,ot.mean.rel.ab,lh.mean.rel.ab)
+rownames(dstar) <- c("Lizard Island","One Tree Island","Lord Howe Island")
+colnames(dstar) <- rel.cover.mat[,1]
+stars(dstar)
+
+# Select 10 most abundant species to focus on and lump others under "other species"
+plot(rev(sort(colSums(dstar))))  # distribution of summed mean abundance
+top10 <- rev(sort(colSums(dstar)))[1:12]  # top 10 species
+top10sp <- attributes(top10)$names
+
+ds <- dstar[,which(colnames(dstar)%in%top10sp==T)] # top 10 species
+dstar2 <- dstar[,which(colnames(dstar)%in%top10sp==F)] # all other species
+other.species <- as.data.frame(rowSums(dstar2))
+colnames(other.species) <- "Other species"
+dstar.top <- cbind(ds,other.species)
+stars(dstar.top)
+
+# looks unclear. Normalise to vary between zero and 1?
+dstar.top/max(dstar.top)
+# still looks odd
+# plot without the other species
+stars(ds)
+
+
+stars(ds,scale=T,key.labels=top10sp,draw.segments=T,col.segments=terrain.colors(12))
+# order so that brooders are on bottom half and one colour scheme, 
+# spawners on top half with a different colour scheme
+
+# have a look at which colour is which....
+plot(1:12,1:12,col=terrain.colors(12),pch=19)
+# create a vector in the same order as the top 10 species with brooder=0,spawner=1
+colnames(ds)
+brsp <- c(0,1,1,1,0,1,1,0,0,1,0,0)
+ds2 <- ds[,c(1,5,8,9,11,12,2,3,4,6,7,10)]
+
+star.col <- terrain.colors(14)
+
+stars(ds2,scale=F,draw.segments=T,col.segments=star.col[c(1:6,9:14)],flip.labels=T)
+
+# scale of the bars is not very good
+stars(sqrt(ds2),scale=F,draw.segments=T,col.segments=star.col[c(1:6,9:14)],flip.labels=T)
+stars(sqrt(cbind(ds2,other.species)),scale=F,draw.segments=T,col.segments=star.col[c(1:6,8:14)],flip.labels=T)
+# specify where the star plots should go on the page
+# offset so labels dont overlap each other
+par(oma=c(3,0,0,0))
+stars(sqrt(cbind(ds2,other.species)),scale=F,draw.segments=T,col.segments=star.col[c(1:6,8:14)],
+       location=cbind(c(0.5,2,3.5),c(3,2,1)),cex=1.5)
+
+# try stretching the values between 0 and 1
+ds3 <- cbind(ds2,other.species)
+stretch <- function(x){(x-min(x))/(max(x)-min(x))}
+stretch(ds3)
+
+par(oma=c(3,0,0,0))
+stars(ds3,scale=F,draw.segments=T,col.segments=star.col[c(1:6,8:14)],
+      location=cbind(c(0.5,2,3.5),c(3,2,1)),cex=1.5)
+
+ds4 <- stretch(ds2)
+par(oma=c(3,0,0,0))
+stars(ds4,scale=F,draw.segments=T,col.segments=star.col[c(1:6,8:14)],
+      location=cbind(c(0.5,2,3.5),c(3,2,1)),cex=1.5)

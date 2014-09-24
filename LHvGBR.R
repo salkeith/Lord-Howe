@@ -49,8 +49,8 @@ habitat <- rep(c("lagoon","crest","lagoon","crest","crest","lagoon"),c(120*36,12
 site <- rep(c("horseshoe","lagoon.reef","north.of.trimodal","lizard.head","north.point","trimodal","second.lagoon",
               "shark.alley","the.gutter","long.bank","second.lagoon","third.lagoon","blackburn.island",
               "jetty","north.bay","comets.hole","north.bay","sylphs.hole"),
-              c(120*12,120*12,120*12,120*12,120*13,120*12,120*12,120*12,120*12,120*8,120*6,120*8,
-                120*12,120*12,120*12,120*12,120*12,120*12))
+            c(120*12,120*12,120*12,120*12,120*13,120*12,120*12,120*12,120*12,120*8,120*6,120*8,
+              120*12,120*12,120*12,120*12,120*12,120*12))
 transect <- rep(c(1:203),rep(120,203))
 d4 <- cbind(island,habitat,site,transect,d3)
 head(d4)
@@ -67,8 +67,8 @@ colnames(cover.data)[1] <- "record"
 cover.relative <- c()
 # calculate relative cover (i.e., proportion of total coral cover)
 for(i in 1:length(unique(transect))){
-      x <- subset(cover.data,cover.data$transect==i)
-      cover.relative <- c(cover.relative,x$cover.cm/sum(x$cover.cm))
+   x <- subset(cover.data,cover.data$transect==i)
+   cover.relative <- c(cover.relative,x$cover.cm/sum(x$cover.cm))
 }
 
 cover.data <- cbind(cover.data,cover.relative)
@@ -313,8 +313,8 @@ load(d,file="DataForRegressionLHI.RData")
 
 # Full model including interactions that make biological sense and genus as a random effect
 mod <- lmer(ax1~valley.size+I(valley.size^2)+I(valley.size^3)+upp.depth+depth.range+wave.exposure+water.clarity+genus.age+sex+
-              larval.mode+zoox+egg.diam+upp.depth*depth.range+wave.exposure*water.clarity+larval.mode*sex+larval.mode*egg.diam+
-              sex*egg.diam+(1|genus),data=d,na.action=na.fail)
+               larval.mode+zoox+egg.diam+upp.depth*depth.range+wave.exposure*water.clarity+larval.mode*sex+larval.mode*egg.diam+
+               sex*egg.diam+(1|genus),data=d,na.action=na.fail)
 summary(mod)
 dotplot(ranef(mod, postVar=TRUE))
 # mixed model not required - very low variance accounted for and overlapping confidence intervals in dotplot
@@ -322,7 +322,7 @@ dotplot(ranef(mod, postVar=TRUE))
 # remove non-significant interactions
 mod <- lm(ax1~valley.size+I(valley.size^2)+I(valley.size^3)+upp.depth+depth.range+wave.exposure+water.clarity+
              genus.age+sex+larval.mode+zoox+egg.diam+upp.depth*depth.range,
-             data=d,na.action=na.fail)
+          data=d,na.action=na.fail)
 summary(mod)
 
 # take a look at the partial coefficients
@@ -372,9 +372,9 @@ par(mfcol=c(2,2))
 # LARVAL MODE
 x <- seq(min(d$larval.mode),max(d$larval.mode),length=100)
 larval.pred <- with(d,(predict(mod.sel,se.fit=T,newdata=data.frame(larval.mode=x,
-               depth.range=mean(depth.range),upp.depth=mean(upp.depth),wave.exposure=mean(wave.exposure),
-               water.clarity=mean(water.clarity),valley.size=mean(valley.size),genus.age=mean(genus.age),
-               sex=mean(sex),egg.diam=mean(egg.diam),zoox=mean(zoox)))))
+                                                                   depth.range=mean(depth.range),upp.depth=mean(upp.depth),wave.exposure=mean(wave.exposure),
+                                                                   water.clarity=mean(water.clarity),valley.size=mean(valley.size),genus.age=mean(genus.age),
+                                                                   sex=mean(sex),egg.diam=mean(egg.diam),zoox=mean(zoox)))))
 plot(ax1~larval.mode,data=d,col="lightgray",pch=16,ylab="NMDS Axis 1",
      xlab="Larval mode",cex.lab=1.5)
 points(larval.pred$fit~x,type="l",col=1,lwd=2)
@@ -384,9 +384,9 @@ lines(larval.pred$fit-larval.pred$se.fit~x,lty=2,type="l")
 # WAVE EXPOSURE
 x <- seq(min(d$wave.exposure),max(d$wave.exposure),length=100)
 wave.pred <- with(d,(predict(mod.sel,se.fit=T,newdata=data.frame(wave.exposure=x,
-              depth.range=mean(depth.range),upp.depth=mean(upp.depth),larval.mode=mean(larval.mode),
-              water.clarity=mean(water.clarity),valley.size=mean(valley.size),genus.age=mean(genus.age),
-              sex=mean(sex),egg.diam=mean(egg.diam),zoox=mean(zoox)))))
+                                                                 depth.range=mean(depth.range),upp.depth=mean(upp.depth),larval.mode=mean(larval.mode),
+                                                                 water.clarity=mean(water.clarity),valley.size=mean(valley.size),genus.age=mean(genus.age),
+                                                                 sex=mean(sex),egg.diam=mean(egg.diam),zoox=mean(zoox)))))
 plot(ax1~wave.exposure,data=d,col="lightgray",pch=16,ylab="NMDS Axis 1",
      xlab="Wave exposure",cex.lab=1.5)
 points(wave.pred$fit~x,type="l",col=1,lwd=2)
@@ -396,9 +396,9 @@ lines(wave.pred$fit-wave.pred$se.fit~x,lty=2,type="l")
 # VALLEY SIZE
 x <- seq(min(d$valley.size),max(d$valley.size),length=100)
 valley.pred <- with(d,(predict(mod.sel,se.fit=T,newdata=data.frame(valley.size=x,
-             depth.range=mean(depth.range),upp.depth=mean(upp.depth),larval.mode=mean(larval.mode),
-             water.clarity=mean(water.clarity),wave.exposure=mean(wave.exposure),genus.age=mean(genus.age),
-             sex=mean(sex),egg.diam=mean(egg.diam),zoox=mean(zoox)))))
+                                                                   depth.range=mean(depth.range),upp.depth=mean(upp.depth),larval.mode=mean(larval.mode),
+                                                                   water.clarity=mean(water.clarity),wave.exposure=mean(wave.exposure),genus.age=mean(genus.age),
+                                                                   sex=mean(sex),egg.diam=mean(egg.diam),zoox=mean(zoox)))))
 plot(ax1~valley.size,data=d,col="lightgray",pch=16,ylab="NMDS Axis 1",
      xlab="Valley size",cex.lab=1.5)
 points(valley.pred$fit~x,type="l",col=1,lwd=2)
@@ -414,9 +414,9 @@ for(i in 1:4){
    drbin <- drbins[i]
    x <- seq(min(d$upp.depth),max(d$upp.depth),length=100)
    udepth.pred <- with(d,(predict(mod.sel,se.fit=T,newdata=data.frame(upp.depth=x,
-                        depth.range=drbin,valley.size=mean(valley.size),larval.mode=mean(larval.mode),
-                        water.clarity=mean(water.clarity),wave.exposure=mean(wave.exposure),genus.age=mean(genus.age),
-                        sex=mean(sex),egg.diam=mean(egg.diam),zoox=mean(zoox)))))
+                                                                      depth.range=drbin,valley.size=mean(valley.size),larval.mode=mean(larval.mode),
+                                                                      water.clarity=mean(water.clarity),wave.exposure=mean(wave.exposure),genus.age=mean(genus.age),
+                                                                      sex=mean(sex),egg.diam=mean(egg.diam),zoox=mean(zoox)))))
    plot(ax1~upp.depth,data=d,col="lightgray",pch=16,ylab="NMDS Axis 1",
         xlab="Upper depth",cex.lab=1.5,main=paste("Depth range bin ", drbin,sep=""))
    points(udepth.pred$fit~x,type="l",col=1,lwd=2)
@@ -444,7 +444,7 @@ xx <- cbind(x,rev(x))
 yy <- cbind(y3,rev(y4))
 # for rgb the last number is transparency
 polygon(xx, yy, col=rgb(0.05,0.05,0.05,0.2),border=NA)
-  
+
 # WAVE EXPOSURE
 x<-seq(min(d$wave.exposure),max(d$wave.exposure),length=100)
 plot(d$wave.exposure,d$ax1,pch=20,cex=0.5,col="grey") 
@@ -599,9 +599,9 @@ par(mfcol=c(2,2))
 # LARVAL MODE
 x <- seq(min(d$larval.mode),max(d$larval.mode),length=100)
 larval.pred <- with(d,(predict(mod.sel,se.fit=T,newdata=data.frame(larval.mode=x,
-                        depth.range=mean(depth.range),upp.depth=mean(upp.depth),wave.exposure=mean(wave.exposure),
-                        water.clarity=mean(water.clarity),valley.size=mean(valley.size),genus.age=mean(genus.age),
-                        sex=mean(sex),egg.diam=mean(egg.diam),zoox=mean(zoox)))))
+                                                                   depth.range=mean(depth.range),upp.depth=mean(upp.depth),wave.exposure=mean(wave.exposure),
+                                                                   water.clarity=mean(water.clarity),valley.size=mean(valley.size),genus.age=mean(genus.age),
+                                                                   sex=mean(sex),egg.diam=mean(egg.diam),zoox=mean(zoox)))))
 plot(ax1~larval.mode,data=d,col="lightgray",pch=16,ylab="NMDS Axis 1",
      xlab="Larval mode",cex.lab=1.5)
 points(larval.pred$fit~x,type="l",col=1,lwd=2)
@@ -611,9 +611,9 @@ lines(larval.pred$fit-larval.pred$se.fit~x,lty=2,type="l")
 # WAVE EXPOSURE
 x <- seq(min(d$wave.exposure),max(d$wave.exposure),length=100)
 wave.pred <- with(d,(predict(mod.sel,se.fit=T,newdata=data.frame(wave.exposure=x,
-                        depth.range=mean(depth.range),upp.depth=mean(upp.depth),larval.mode=mean(larval.mode),
-                        water.clarity=mean(water.clarity),valley.size=mean(valley.size),genus.age=mean(genus.age),
-                        sex=mean(sex),egg.diam=mean(egg.diam),zoox=mean(zoox)))))
+                                                                 depth.range=mean(depth.range),upp.depth=mean(upp.depth),larval.mode=mean(larval.mode),
+                                                                 water.clarity=mean(water.clarity),valley.size=mean(valley.size),genus.age=mean(genus.age),
+                                                                 sex=mean(sex),egg.diam=mean(egg.diam),zoox=mean(zoox)))))
 plot(ax1~wave.exposure,data=d,col="lightgray",pch=16,ylab="NMDS Axis 1",
      xlab="Wave exposure",cex.lab=1.5)
 points(wave.pred$fit~x,type="l",col=1,lwd=2)
@@ -623,9 +623,9 @@ lines(wave.pred$fit-wave.pred$se.fit~x,lty=2,type="l")
 # VALLEY SIZE
 x <- seq(min(d$valley.size),max(d$valley.size),length=100)
 valley.pred <- with(d,(predict(mod.sel,se.fit=T,newdata=data.frame(valley.size=x,
-                        depth.range=mean(depth.range),upp.depth=mean(upp.depth),larval.mode=mean(larval.mode),
-                        water.clarity=mean(water.clarity),wave.exposure=mean(wave.exposure),genus.age=mean(genus.age),
-                        sex=mean(sex),egg.diam=mean(egg.diam),zoox=mean(zoox)))))
+                                                                   depth.range=mean(depth.range),upp.depth=mean(upp.depth),larval.mode=mean(larval.mode),
+                                                                   water.clarity=mean(water.clarity),wave.exposure=mean(wave.exposure),genus.age=mean(genus.age),
+                                                                   sex=mean(sex),egg.diam=mean(egg.diam),zoox=mean(zoox)))))
 plot(ax1~valley.size,data=d,col="lightgray",pch=16,ylab="NMDS Axis 1",
      xlab="Water clarity",cex.lab=1.5)
 points(valley.pred$fit~x,type="l",col=1,lwd=2)
@@ -641,9 +641,9 @@ for(i in 1:4){
    drbin <- drbins[i]
    x <- seq(min(d$upp.depth),max(d$upp.depth),length=100)
    udepth.pred <- with(d,(predict(mod.sel,se.fit=T,newdata=data.frame(upp.depth=x,
-                        depth.range=drbin,valley.size=mean(valley.size),larval.mode=mean(larval.mode),
-                        water.clarity=mean(water.clarity),wave.exposure=mean(wave.exposure),genus.age=mean(genus.age),
-                        sex=mean(sex),egg.diam=mean(egg.diam),zoox=mean(zoox)))))
+                                                                      depth.range=drbin,valley.size=mean(valley.size),larval.mode=mean(larval.mode),
+                                                                      water.clarity=mean(water.clarity),wave.exposure=mean(wave.exposure),genus.age=mean(genus.age),
+                                                                      sex=mean(sex),egg.diam=mean(egg.diam),zoox=mean(zoox)))))
    plot(ax1~upp.depth,data=d,col="lightgray",pch=16,ylab="NMDS Axis 1",
         xlab="Upper depth",cex.lab=1.5,main=paste("Depth range bin ", drbin,sep=""))
    points(udepth.pred$fit~x,type="l",col=1,lwd=2)
@@ -708,10 +708,10 @@ lhc <- subset(meansd.rel,meansd.rel[,2]=="crest" & meansd.rel[,3]=="lord.howe")
 
 # normalised by the total sum of the means so columns add up to 1
 mean.rel.ab <- cbind((lizl[,5])/(sum(lizl[,5])),(lizc[,5])/(sum(lizc[,5])),(otl[,5])/(sum(otl[,5])),
-                       (otc[,5])/(sum(otc[,5])),(lhl[,5])/(sum(lhl[,5])),(lhc[,5])/(sum(lhc[,5])))
+                     (otc[,5])/(sum(otc[,5])),(lhl[,5])/(sum(lhl[,5])),(lhc[,5])/(sum(lhc[,5])))
 # sorted by relative abundance
 mean.rel.ab.sort <- cbind(sort((lizl[,5])/(sum(lizl[,5]))),sort((lizc[,5])/(sum(lizc[,5]))),sort((otl[,5])/(sum(otl[,5]))),
-                  sort((otc[,5])/(sum(otc[,5]))),sort((lhl[,5])/(sum(lhl[,5]))),sort((lhc[,5])/(sum(lhc[,5]))))
+                          sort((otc[,5])/(sum(otc[,5]))),sort((lhl[,5])/(sum(lhl[,5]))),sort((lhc[,5])/(sum(lhc[,5]))))
 mean.rel.ab.sort <- apply(mean.rel.ab,2,rev)
 
 # plot in groups: island by habitat. Unsorted, species in alphabetical order
@@ -776,8 +776,8 @@ for(i in c(3,5,7)){
 
 ## TRY OUT A GAM
 mod.gam <- gam(ax1~valley.size+upp.depth+depth.range+wave.exposure+water.clarity+
-             genus.age+sex+larval.mode+zoox+egg.diam+upp.depth*depth.range,
-          data=d,family="gaussian",na.action=na.fail)
+                  genus.age+sex+larval.mode+zoox+egg.diam+upp.depth*depth.range,
+               data=d,family="gaussian",na.action=na.fail)
 summary(mod.gam)
 1-pchisq(mod.gam$deviance,mod.gam$df.resid)
 
@@ -790,7 +790,7 @@ mod.sel.test <- summary(model.avg(get.models(subset(dmod,delta < 3))))
 mod.sel.test
 x <- seq(min(d$valley.size),max(d$valley.size),length=100)
 valley.pred <- with(d,(predict(mod.sel.test,interval="c",level=0.95,se.fit=T,newdata=data.frame(valley.size=x,
-                        upp.depth=mean(upp.depth)))))
+                                                                                                upp.depth=mean(upp.depth)))))
 
 
 
