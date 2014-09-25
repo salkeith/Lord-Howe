@@ -619,3 +619,16 @@ ds4 <- stretch(ds2)
 par(oma=c(3,0,0,0))
 stars(ds4,scale=F,draw.segments=T,col.segments=star.col[c(1:6,8:14)],
       location=cbind(c(0.5,2,3.5),c(3,2,1)),cex=1.5)
+
+
+# AB suggests other species should be split into brooders/spawners too
+# good idea andrew!
+
+# here goes...
+
+load("SpeciesAxisScoresTraits.RData")
+b.sp <- sptr[which(sptr[,13]==0),1]  # list of brooding species
+s.sp <- sptr[which(sptr[,13]==1),1]  # list of spawning species
+dstar2
+
+
